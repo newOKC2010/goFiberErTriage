@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: ./backend
+    image: triage-image-backend
+    container_name: triage-container-backend
+    env_file: ./backend/.env
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: triage-image-frontend
+    container_name: triage-container-frontend
+    env_file: ./frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
