@@ -54,4 +54,40 @@ func CreateERNotifyTrigger() {
 		log.Fatalf("[MODEL] สร้าง trigger trg_er_regist_notify ไม่สำเร็จ: %v", err)
 	}
 	log.Println("[MODEL] trigger trg_er_regist_notify ✓")
+
+	// IPD order trigger
+	ipdFnSQL := `
+		CREATE OR REPLACE FUNCTION notify_ipd_order_change()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			PERFORM pg_notify('ipd_order_update', NEW.an::text);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+	`
+	ipdTriggerSQL := `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM pg_trigger WHERE tgname = 'trg_ipd_order_notify'
+			) THEN
+				CREATE TRIGGER trg_ipd_order_notify
+				AFTER INSERT OR UPDATE OF order_approved ON ipd_doctor_order
+				FOR EACH ROW EXECUTE FUNCTION notify_ipd_order_change();
+				RAISE NOTICE 'trigger trg_ipd_order_notify: created';
+			ELSE
+				RAISE NOTICE 'trigger trg_ipd_order_notify: already exists, skipped';
+			END IF;
+		END;
+		$$;
+	`
+	if _, err := Db.Exec(ipdFnSQL); err != nil {
+		log.Fatalf("[MODEL] สร้าง function notify_ipd_order_change ไม่สำเร็จ: %v", err)
+	}
+	log.Println("[MODEL] function notify_ipd_order_change ✓")
+
+	if _, err := Db.Exec(ipdTriggerSQL); err != nil {
+		log.Fatalf("[MODEL] สร้าง trigger trg_ipd_order_notify ไม่สำเร็จ: %v", err)
+	}
+	log.Println("[MODEL] trigger trg_ipd_order_notify ✓")
 }

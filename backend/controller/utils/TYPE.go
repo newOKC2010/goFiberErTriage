@@ -43,6 +43,16 @@ type NullTypeAlert struct {
 	Message     string `json:"message"`
 }
 
+// IPDOrderAlert แจ้งเตือน IPD doctor order ที่ยังไม่ได้ approve
+type IPDOrderAlert struct {
+	AN         string `json:"an"`
+	OrderDate  string `json:"order_date"`
+	OrderTime  string `json:"order_time"`
+	DoctorName string `json:"doctor_name"`
+	HN         string `json:"hn"`
+	FullName   string `json:"full_name"`
+}
+
 // AlertThresholds โหลดจาก .env ตอน startup
 // แก้ค่าได้ที่ .env แล้ว restart server
 var AlertThresholds map[int]int
