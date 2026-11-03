@@ -74,6 +74,7 @@ func checkNullAndBroadcast() {
 		for _, a := range list {
 			log.Printf("[NULL] HN:%s %s | เข้า %s %s | รอ %d นาที (ยังไม่ระบุ type)",
 				a.HN, a.FullName, a.EnterERDate, a.EnterERTime, a.ElapsedMin)
+			go mophAlert.SendNullTypeAlert(a.HN, a.FullName, a.EnterERDate, a.EnterERTime, a.ElapsedMin)
 		}
 	}
 	NullHub.broadcast(list)

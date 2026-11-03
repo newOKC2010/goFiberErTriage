@@ -80,19 +80,44 @@ func SendAlert(payload mophAlertUtils.FlexAlertPayload) mophAlertUtils.AlertResp
 	return result
 }
 
-// SendERAlert ส่ง alert ER ไปยัง CID ที่กำหนดใน .env (CID_ALERT)
+// SendERAlert ส่ง alert ER (เกินเวลา) ไปยัง CID ที่กำหนดใน .env
 func SendERAlert(hn, fullName, emergencyName, enterDate, enterTime string, elapsedMin, thresholdMin int) mophAlertUtils.AlertResponse {
 	env := loadEnv.LoadMOPHAlert()
 	if len(env.CIDAlert) == 0 {
 		log.Println("[MOPH] CID_ALERT ว่าง ข้ามการส่ง alert")
 		return mophAlertUtils.AlertResponse{Message: "no cid", MessageCode: 0}
 	}
+	log.Printf("[MOPH] กำลังส่ง ER alert → CID: %s | HN:%s %s | %s | %d นาที",
+		strings.Join(env.CIDAlert, ","), hn, fullName, emergencyName, elapsedMin)
 	flexMsg := handlerMophAlert.CreateERAlertFlexMessage(hn, fullName, emergencyName, enterDate, enterTime, elapsedMin, thresholdMin)
-	payload := mophAlertUtils.FlexAlertPayload{
-		CID:      env.CIDAlert,
-		Messages: []mophAlertUtils.FlexMessage{flexMsg},
+	payload := mophAlertUtils.FlexAlertPayload{CID: env.CIDAlert, Messages: []mophAlertUtils.FlexMessage{flexMsg}}
+	result := SendAlert(payload)
+	if result.MessageCode == 200 {
+		log.Printf("[MOPH] ✓ ส่ง ER alert สำเร็จ → CID: %s", strings.Join(env.CIDAlert, ","))
+	} else {
+		log.Printf("[MOPH] ✗ ส่ง ER alert ไม่สำเร็จ: %s (code: %d)", result.Message, result.MessageCode)
 	}
-	return SendAlert(payload)
+	return result
+}
+
+// SendNullTypeAlert ส่ง alert ผู้ป่วยยังไม่ระบุ type ไปยัง CID ที่กำหนดใน .env
+func SendNullTypeAlert(hn, fullName, enterDate, enterTime string, elapsedMin int) mophAlertUtils.AlertResponse {
+	env := loadEnv.LoadMOPHAlert()
+	if len(env.CIDAlert) == 0 {
+		log.Println("[MOPH] CID_ALERT ว่าง ข้ามการส่ง null type alert")
+		return mophAlertUtils.AlertResponse{Message: "no cid", MessageCode: 0}
+	}
+	log.Printf("[MOPH] กำลังส่ง Null Type alert → CID: %s | HN:%s %s | รอ %d นาที",
+		strings.Join(env.CIDAlert, ","), hn, fullName, elapsedMin)
+	flexMsg := handlerMophAlert.CreateNullTypeFlexMessage(hn, fullName, enterDate, enterTime, elapsedMin)
+	payload := mophAlertUtils.FlexAlertPayload{CID: env.CIDAlert, Messages: []mophAlertUtils.FlexMessage{flexMsg}}
+	result := SendAlert(payload)
+	if result.MessageCode == 200 {
+		log.Printf("[MOPH] ✓ ส่ง Null Type alert สำเร็จ → CID: %s", strings.Join(env.CIDAlert, ","))
+	} else {
+		log.Printf("[MOPH] ✗ ส่ง Null Type alert ไม่สำเร็จ: %s (code: %d)", result.Message, result.MessageCode)
+	}
+	return result
 }
 
 func SendMophOTP(cid, otpCode, fullName string) mophAlertUtils.AlertResponse {
