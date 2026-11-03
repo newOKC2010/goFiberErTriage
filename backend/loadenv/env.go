@@ -51,6 +51,23 @@ func LoadThresholds() map[int]int {
 	}
 }
 
+func LoadMOPHAlert() MOPHAlert {
+	cids := strings.Split(os.Getenv("CID_ALERT"), ",")
+	var filtered []string
+	for _, c := range cids {
+		c = strings.TrimSpace(c)
+		if c != "" {
+			filtered = append(filtered, c)
+		}
+	}
+	return MOPHAlert{
+		URL:       os.Getenv("MOPH_ALERT_URL"),
+		ClientID:  os.Getenv("MOPH_CLIENT_ID"),
+		SecretKey: os.Getenv("MOPH_SECRET_KEY"),
+		CIDAlert:  filtered,
+	}
+}
+
 func LoadCORS() CORS {
 	_ = godotenv.Load()
 	credentials, _ := strconv.ParseBool(os.Getenv("CORS_CREDENTIALS"))

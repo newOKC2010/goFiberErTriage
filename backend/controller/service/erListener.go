@@ -9,6 +9,7 @@ import (
 
 	"github.com/lib/pq"
 
+	mophAlert "tiage/controller/alert"
 	"tiage/controller/utils"
 )
 
@@ -97,11 +98,12 @@ func startupCheckAndBroadcast() {
 		elapsed := p.ElapsedMin
 		log.Printf("[ALERT] ตรวจ HN:%s type=%d elapsed=%d นาที threshold=%d นาที", p.HN, p.EmergencyType, elapsed, threshold)
 		if elapsed >= threshold {
+			enterDate := p.EnterERTime.Format("2006-01-02")
+			enterTime := p.EnterERTime.Format("15:04:05")
 			log.Printf("[ALERT][STARTUP] HN:%s %s | %s | เข้า %s %s | รอ %d นาที (threshold %d นาที)",
-				p.HN, p.FullName, p.EmergencyName,
-				p.EnterERTime.Format("2006-01-02"), p.EnterERTime.Format("15:04:05"),
-				elapsed, threshold,
+				p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold,
 			)
+			go mophAlert.SendERAlert(p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold)
 			alerts = append(alerts, utils.ERAlert{
 				HN: p.HN, VN: p.VN, FullName: p.FullName,
 				EmergencyType: p.EmergencyType, EmergencyName: p.EmergencyName,
@@ -132,11 +134,12 @@ func checkAndBroadcast() {
 		}
 		elapsed := p.ElapsedMin
 		if elapsed >= threshold && elapsed%threshold == 0 {
+			enterDate := p.EnterERTime.Format("2006-01-02")
+			enterTime := p.EnterERTime.Format("15:04:05")
 			log.Printf("[ALERT] HN:%s %s | %s | เข้า %s %s | รอ %d นาที (ทุก %d นาที)",
-				p.HN, p.FullName, p.EmergencyName,
-				p.EnterERTime.Format("2006-01-02"), p.EnterERTime.Format("15:04:05"),
-				elapsed, threshold,
+				p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold,
 			)
+			go mophAlert.SendERAlert(p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold)
 			alerts = append(alerts, utils.ERAlert{
 				HN: p.HN, VN: p.VN, FullName: p.FullName,
 				EmergencyType: p.EmergencyType, EmergencyName: p.EmergencyName,
