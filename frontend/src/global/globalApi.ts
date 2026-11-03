@@ -5,4 +5,7 @@ export const API_ENDPOINTS = {
     get ALERTS_SSE() { return `${process.env.NEXT_PUBLIC_API_URL}/api/er/alerts` },
     get NULL_TYPE_SSE() { return `${process.env.NEXT_PUBLIC_API_URL}/api/er/null-type` },
   },
+  IPD: {
+    get ORDERS_SSE() { return `${process.env.NEXT_PUBLIC_API_URL}/api/ipd/orders` },
+  },
 }
