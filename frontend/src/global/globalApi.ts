@@ -7,5 +7,6 @@ export const API_ENDPOINTS = {
   },
   IPD: {
     get ORDERS_SSE() { return `${process.env.NEXT_PUBLIC_API_URL}/api/ipd/orders` },
+    ORDERS_HISTORY(days: number) { return `${process.env.NEXT_PUBLIC_API_URL}/api/ipd/orders/history?days=${days}` },
   },
 }
