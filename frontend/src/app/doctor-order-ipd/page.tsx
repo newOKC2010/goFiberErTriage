@@ -3,16 +3,15 @@ import { useIPDOrder } from './useIPDOrder'
 import IPDOrderCard from './IPDOrderCard'
 
 export default function DoctorOrderIPDPage() {
-  const { orders, connected, soundOn, toggleSound } = useIPDOrder()
+  const { groups = [], connected, soundOn, toggleSound } = useIPDOrder()
 
   return (
     <main className="min-h-screen bg-gray-100 p-6">
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-5xl text-blue-700">IPD Doctor Order</h1>
           <p className="mt-1 text-2xl text-gray-500">
-            รอ Approve Order วันนี้ ({orders.length} รายการ)
+            รอ Approve Order วันนี้ ({groups.length} รายการ)
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -28,15 +27,14 @@ export default function DoctorOrderIPDPage() {
         </div>
       </div>
 
-      {/* Cards */}
-      {orders.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="flex h-64 items-center justify-center rounded-2xl bg-white shadow">
           <p className="text-3xl text-gray-400">ไม่มี order ที่รอ approve</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {orders.map((o) => (
-            <IPDOrderCard key={o.an} order={o} />
+          {groups.map((g) => (
+            <IPDOrderCard key={g.order_id} group={g} />
           ))}
         </div>
       )}
