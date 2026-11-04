@@ -43,14 +43,18 @@ type NullTypeAlert struct {
 	Message     string `json:"message"`
 }
 
-// IPDOrderAlert แจ้งเตือน IPD doctor order ที่ยังไม่ได้ approve
+// IPDOrderAlert แจ้งเตือน IPD doctor order detail ที่ยังไม่ได้เริ่ม (is_start IS NULL)
 type IPDOrderAlert struct {
-	AN         string `json:"an"`
-	OrderDate  string `json:"order_date"`
-	OrderTime  string `json:"order_time"`
+	DetailID  string `json:"detail_id"`
+	OrderID   string `json:"order_id"`
+	AN        string `json:"an"`
+	OrderDate string `json:"order_date"`
+	OrderTime string `json:"order_time"`
+	OrderType string `json:"order_type"`
+	OrderText string `json:"order_text"`
 	DoctorName string `json:"doctor_name"`
-	HN         string `json:"hn"`
-	FullName   string `json:"full_name"`
+	HN        string `json:"hn"`
+	FullName  string `json:"full_name"`
 }
 
 // AlertThresholds โหลดจาก .env ตอน startup

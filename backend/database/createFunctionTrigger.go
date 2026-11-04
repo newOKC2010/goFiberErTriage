@@ -60,7 +60,7 @@ func CreateERNotifyTrigger() {
 		CREATE OR REPLACE FUNCTION notify_ipd_order_change()
 		RETURNS TRIGGER AS $$
 		BEGIN
-			PERFORM pg_notify('ipd_order_update', NEW.an::text);
+			PERFORM pg_notify('ipd_order_update', NEW.ipd_doctor_order_detail_id::text);
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;
@@ -72,7 +72,7 @@ func CreateERNotifyTrigger() {
 				SELECT 1 FROM pg_trigger WHERE tgname = 'trg_ipd_order_notify'
 			) THEN
 				CREATE TRIGGER trg_ipd_order_notify
-				AFTER INSERT OR UPDATE OF order_approved ON ipd_doctor_order
+				AFTER INSERT OR UPDATE OF is_start ON ipd_doctor_order_detail
 				FOR EACH ROW EXECUTE FUNCTION notify_ipd_order_change();
 				RAISE NOTICE 'trigger trg_ipd_order_notify: created';
 			ELSE

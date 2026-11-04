@@ -53,8 +53,8 @@ func checkIPDAndBroadcast() {
 	}
 	log.Printf("[IPD] pending orders: %d", len(list))
 	for _, o := range list {
-		log.Printf("[IPD] AN:%s HN:%s %s | แพทย์: %s | %s %s",
-			o.AN, o.HN, o.FullName, o.DoctorName, o.OrderDate, o.OrderTime)
+		log.Printf("[IPD] DetailID:%s AN:%s HN:%s %s | แพทย์: %s | %s | %s %s",
+			o.DetailID, o.AN, o.HN, o.FullName, o.DoctorName, o.OrderType, o.OrderDate, o.OrderTime)
 	}
 	IPDHub.broadcast(list)
 }
