@@ -13,4 +13,5 @@ func SetupRoutes(app *fiber.App) {
 
 	ipd := app.Group("/api/ipd")
 	ipd.Get("/orders", handler.IPDOrderSSE)
+	ipd.Get("/orders/history", handler.IPDOrderHistory)
 }
