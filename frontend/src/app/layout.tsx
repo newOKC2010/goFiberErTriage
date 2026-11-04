@@ -3,7 +3,7 @@ import "@/app/globals.css";
 
 export const metadata: Metadata = {
   title: "Triage+IPD",
-  description: "ระบบ Triage",
+  description: "ระบบ Triage + IPD",
 };
 
 export default function RootLayout({
