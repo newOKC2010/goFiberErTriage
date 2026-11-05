@@ -1,5 +1,6 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Modal } from '@/components/modal/mainModal'
 import { useIPDOrder } from './useIPDOrder'
 import IPDOrderCard from './IPDOrderCard'
 import { API_ENDPOINTS } from '@/global/globalApi'
@@ -53,6 +54,8 @@ export default function DoctorOrderIPDPage() {
   const [historyGroups, setHistoryGroups] = useState<IPDOrderGroup[]>([])
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [page, setPage] = useState(1)
+  const [selected, setSelected] = useState<IPDOrderGroup | null>(null)
 
   const isHistoryMode = applied !== null && applied.days !== ''
 
@@ -74,6 +77,22 @@ export default function DoctorOrderIPDPage() {
     })
   }, [liveGroups, historyGroups, applied, isHistoryMode])
 
+  // pagination 5 คอลัมน์ × 6 แถว = 30 ใบ/หน้า (clamp หน้าอัตโนมัติเมื่อข้อมูล real-time เปลี่ยน)
+  const PAGE_SIZE = 30
+  const totalPages = Math.max(1, Math.ceil(displayGroups.length / PAGE_SIZE))
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
+  const pageGroups = displayGroups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // sync modal กับข้อมูลล่าสุด (ถ้า order หายจากระบบ ให้ปิด modal)
+  useEffect(() => {
+    if (!selected) return
+    const latest = displayGroups.find(g => g.order_id === selected.order_id)
+    if (!latest) setSelected(null)
+    else if (latest !== selected) setSelected(latest)
+  }, [displayGroups, selected])
+
   async function handleSearch() {
     setErrorMsg('')
     if (daysSel) {
@@ -93,6 +112,7 @@ export default function DoctorOrderIPDPage() {
       setHistoryGroups([])
     }
     setApplied({ doctor: doctorSel, sort: sortSel, days: daysSel })
+    setPage(1)
   }
 
   function handleClear() {
@@ -102,33 +122,39 @@ export default function DoctorOrderIPDPage() {
     setSortSel('asc')
     setDaysSel('')
     setErrorMsg('')
+    setPage(1)
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-6">
+    <main className="min-h-screen bg-gray-100 p-4">
       {/* Header */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-5xl text-blue-700">IPD Doctor Order</h1>
-          <p className="mt-1 text-2xl text-gray-500">
-            {applied
-              ? `ผลค้นหา${applied.days ? ` ย้อนหลัง ${applied.days} วัน` : ' วันนี้'}${applied.doctor ? ` | ${applied.doctor}` : ''}`
-              : 'real-time วันนี้'}{' '}
-            ({displayGroups.length} รายการ)
-          </p>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-2xl font-bold text-blue-700">IPD Doctor Order</h1>
+          {applied ? (
+            <p className="text-base font-bold text-gray-500">
+              {`ผลค้นหา${applied.days ? ` ย้อนหลัง ${applied.days} วัน` : ' วันนี้'}${applied.doctor ? ` | ${applied.doctor}` : ''}`}{' '}
+              ({displayGroups.length} รายการ)
+            </p>
+          ) : (
+            <p className="text-base font-bold text-red-500">
+              real-time วันนี้ ({displayGroups.length} รายการ)
+            </p>
+          )}
+          <span className="text-sm text-red-400 italic">— คลิกที่รายชื่อเพื่อดูรายละเอียดการสั่ง order แพทย์</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`rounded-full px-4 py-1 text-xl text-white ${connected ? 'bg-green-500' : 'bg-red-500'}`}>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-sm font-bold text-white ${connected ? 'bg-green-500' : 'bg-red-500'}`}>
             {connected ? '● เชื่อมต่อ' : '● ไม่เชื่อมต่อ'}
           </span>
-          <Button variant={soundOn ? 'danger' : 'primary'} size="lg" onClick={toggleSound}>
+          <Button variant={soundOn ? 'danger' : 'primary'} size="sm" onClick={toggleSound}>
             {soundOn ? 'ปิดเสียง' : 'เปิดเสียง'}
           </Button>
         </div>
       </div>
 
       {/* Filter bar */}
-      <div className="mb-5 flex flex-wrap items-end gap-4 rounded-2xl bg-white p-4 shadow">
+      <div className="mb-3 flex flex-wrap items-end gap-3 rounded-xl bg-white px-3 py-2 shadow [&_button]:py-1.5 [&_button]:px-3 [&_button]:text-sm [&_label]:text-xs [&_label]:mb-1">
         <Dropdown
           label="แพทย์"
           options={doctorOptions}
@@ -136,7 +162,7 @@ export default function DoctorOrderIPDPage() {
           onChange={setDoctorSel}
           placeholder="-- ทั้งหมด --"
           searchable
-          className="min-w-[320px]"
+          className="min-w-[220px]"
         />
         <Dropdown
           label="เรียงเวลา"
@@ -151,10 +177,10 @@ export default function DoctorOrderIPDPage() {
           onChange={setDaysSel}
           placeholder="-- ไม่เลือก (วันนี้) --"
         />
-        <Button variant="primary" size="lg" loading={loading} onClick={handleSearch} icon="search">
+        <Button variant="primary" size="sm" loading={loading} onClick={handleSearch} icon="search">
           ค้นหา
         </Button>
-        <Button variant="secondary" size="lg" onClick={handleClear} icon="refresh">
+        <Button variant="secondary" size="sm" onClick={handleClear} icon="refresh">
           ล้างค่า (real-time)
         </Button>
       </div>
@@ -179,10 +205,69 @@ export default function DoctorOrderIPDPage() {
       )}
 
       {!loading && displayGroups.length > 0 && (
-        <div className="flex flex-col gap-4">
-          {displayGroups.map(g => <IPDOrderCard key={g.order_id} group={g} />)}
-        </div>
+        <>
+          {/* Grid 5 คอลัมน์ × 6 แถว */}
+          <div className="grid grid-cols-5 gap-3">
+            {pageGroups.map(g => (
+              <IPDOrderCard key={g.order_id} group={g} onClick={() => setSelected(g)} />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-5 flex items-center justify-center gap-2">
+              <Button variant="secondary" size="md" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                ก่อนหน้า
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={`h-11 w-11 rounded-lg text-lg font-bold transition-colors ${n === page ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 shadow hover:bg-blue-100'}`}
+                >
+                  {n}
+                </button>
+              ))}
+              <Button variant="secondary" size="md" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                ถัดไป
+              </Button>
+            </div>
+          )}
+        </>
       )}
+
+      {/* Modal รายละเอียด order */}
+      <Modal
+        isOpen={selected !== null}
+        onClose={() => setSelected(null)}
+        title={selected?.full_name ?? ''}
+        wrapperClassName="max-w-3xl"
+      >
+        {selected && (
+          <div className="flex flex-col gap-2">
+            <p className="text-lg font-bold text-gray-600">
+              HN: {selected.hn} | AN: {selected.an}
+            </p>
+            <p className="text-lg font-bold text-blue-700">
+              สั่ง ORDER โดย แพทย์: {selected.doctor_name}
+            </p>
+            <p className="text-lg font-bold text-gray-400">วันที่ ORDER: {selected.order_date}</p>
+
+            <div className="mt-2 flex flex-col gap-2 border-t border-blue-200 pt-3">
+              {selected.details.map((d, i) => (
+                <div key={d.detail_id} className="flex items-start gap-3 text-base font-bold">
+                  <span className="min-w-[2rem] text-blue-500">{i + 1}.</span>
+                  <span className="rounded-full bg-blue-100 px-3 py-0.5 text-blue-700">
+                    {d.order_type}
+                  </span>
+                  <span className="flex-1 text-gray-800">{d.order_text}</span>
+                  <span className="text-gray-400">{d.order_time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
     </main>
   )
 }

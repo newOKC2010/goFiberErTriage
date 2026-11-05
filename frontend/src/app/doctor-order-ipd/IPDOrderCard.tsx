@@ -1,32 +1,25 @@
 import { IPDOrderGroup } from './TYPE'
 
-export default function IPDOrderCard({ group }: { group: IPDOrderGroup }) {
+export default function IPDOrderCard({ group, onClick }: { group: IPDOrderGroup; onClick: () => void }) {
   return (
-    <div className="rounded-2xl border-l-8 border-blue-500 bg-blue-50 px-8 py-6 shadow-md">
-      <div className="flex flex-col gap-2">
-        <p className="text-4xl text-gray-900">{group.full_name}</p>
-        <p className="text-2xl text-gray-600">
-          HN: {group.hn} &nbsp;|&nbsp; AN: {group.an}
-        </p>
-        <p className="text-2xl text-blue-700">
-          สั่ง ORDER โดย แพทย์: {group.doctor_name}
-        </p>
-        <p className="text-xl text-gray-400">วันที่ ORDER: {group.order_date}</p>
-
-        {/* รายการ detail */}
-        <div className="mt-2 flex flex-col gap-1 border-t border-blue-200 pt-2">
-          {group.details.map((d, i) => (
-            <div key={d.detail_id} className="flex items-start gap-3 text-xl">
-              <span className="min-w-[2rem] text-blue-500">{i + 1}.</span>
-              <span className="rounded-full bg-blue-100 px-3 py-0.5 text-blue-700">
-                {d.order_type}
-              </span>
-              <span className="flex-1 text-gray-800">{d.order_text}</span>
-              <span className="text-gray-400">{d.order_time}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className="relative rounded-xl border-l-4 border-blue-500 bg-blue-50 px-4 py-3 text-left shadow-md transition-all hover:scale-[1.02] hover:bg-blue-100 hover:shadow-lg cursor-pointer"
+    >
+      <span className="absolute right-2 top-2 rounded-full bg-blue-500 px-2 py-0.5 text-sm font-bold text-white">
+        {group.details.length}
+      </span>
+      <p className="truncate text-lg font-bold text-gray-900">{group.full_name}</p>
+      <p className="text-sm font-bold text-gray-600">
+        HN: {group.hn} | AN: {group.an}
+      </p>
+      <p className="truncate text-sm font-bold text-blue-700">
+        สั่ง ORDER โดย แพทย์: {group.doctor_name}
+      </p>
+      <p className="text-sm font-bold text-gray-400">วันที่ ORDER: {group.order_date}</p>
+      {group.details[0]?.order_time && (
+        <p className="text-sm font-bold text-red-500">เวลา: {group.details[0].order_time}</p>
+      )}
+    </button>
   )
 }
