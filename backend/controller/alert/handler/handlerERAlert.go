@@ -9,7 +9,7 @@ import (
 
 // CreateNullTypeFlexMessage สร้าง Flex Message แจ้งเตือน ผู้ป่วยยังไม่ระบุ type
 func CreateNullTypeFlexMessage(hn, fullName, enterDate, enterTime string, elapsedMin int) mophAlertUtils.FlexMessage {
-	loc, _ := time.LoadLocation("Asia/Bangkok")
+	loc := time.FixedZone("ICT", 7*60*60)
 	now := time.Now().In(loc).Format("02/01/2006 15:04")
 	return mophAlertUtils.FlexMessage{
 		Type:    "flex",

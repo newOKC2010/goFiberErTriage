@@ -9,7 +9,7 @@ import (
 
 // CreateOTPFlexMessage - สร้าง Flex Message สำหรับส่ง OTP
 func CreateOTPFlexMessage(otpCode, fullName string) mophAlertUtils.FlexMessage {
-	loc, _ := time.LoadLocation("Asia/Bangkok")
+	loc := time.FixedZone("ICT", 7*60*60)
 	currentTime := time.Now().In(loc).Format("02/01/2006 15:04:05")
 	return mophAlertUtils.FlexMessage{
 		Type:    "flex",
