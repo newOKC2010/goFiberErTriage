@@ -4,6 +4,43 @@ import { useNullTypeAlert } from './useNullTypeAlert'
 import ERAlertCard from './ERAlertCard'
 import NullTypeCard from './NullTypeCard'
 
+function SpeakerOnIcon() {
+  return (
+    <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 10v4h4l5 5V5L7 10H3z" />
+      <path d="M16.5 12a4.5 4.5 0 00-2.5-4.03v8.05A4.5 4.5 0 0016.5 12z" />
+      <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+    </svg>
+  )
+}
+
+function SpeakerOffIcon() {
+  return (
+    <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 10v4h4l5 5V5L7 10H3z" />
+      <path d="M19.07 4.93l-1.41 1.41L20.24 9l-2.58 2.59 1.41 1.41L21.66 10.41 24.24 13l1.41-1.41L23.07 9l2.58-2.59-1.41-1.41L21.66 7.59 19.07 4.93z" transform="translate(-4 2) scale(0.9)" />
+    </svg>
+  )
+}
+
+function WifiIcon() {
+  return (
+    <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 21l3.5-4.67A5.98 5.98 0 0012 15c-1.3 0-2.5.41-3.5 1.33L12 21z" />
+      <path d="M12 9c-2.97 0-5.66 1.08-7.76 2.86l1.8 2.4A8.95 8.95 0 0112 12c2.25 0 4.31.83 5.96 2.26l1.8-2.4A11.93 11.93 0 0012 9z" />
+      <path d="M12 3C7.46 3 3.34 4.69.12 7.46l1.8 2.4A14.9 14.9 0 0112 6c3.84 0 7.36 1.44 10.08 3.86l1.8-2.4A17.9 17.9 0 0012 3z" />
+    </svg>
+  )
+}
+
+function WarnIcon() {
+  return (
+    <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V9h2v4z" />
+    </svg>
+  )
+}
+
 export default function TriagePage() {
   const { alerts, connected, soundOn, toggleSound } = useERAlert()
   const { alerts: nullAlerts, soundOn: nullSoundOn, toggleSound: toggleNullSound } = useNullTypeAlert()
@@ -19,22 +56,31 @@ export default function TriagePage() {
           <h1 className="text-4xl text-gray-800">ER Triage Monitor</h1>
           <p className="text-xl text-gray-500">ผู้ป่วยรอแพทย์เกินกำหนด</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* ปุ่มเสียง ER */}
           <button
             onClick={toggleSound}
-            className={`rounded-xl px-5 py-2 text-xl text-white ${soundOn ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+            className={`flex flex-col items-center rounded-xl px-5 py-2 text-white transition-colors ${soundOn ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 hover:bg-gray-500'}`}
           >
-            {soundOn ? '🔕 ปิดเสียง' : '🔔 เปิดเสียง'}
+            {soundOn ? <SpeakerOnIcon /> : <SpeakerOffIcon />}
+            <span className="text-sm font-bold">เสียง ER</span>
+            <span className="text-xs">{soundOn ? '● เปิดอยู่' : '○ ปิดอยู่'}</span>
           </button>
+
+          {/* ปุ่มเสียง Null */}
           <button
             onClick={toggleNullSound}
-            className={`rounded-xl px-5 py-2 text-xl text-white ${nullSoundOn ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-500 hover:bg-gray-600'}`}
+            className={`flex flex-col items-center rounded-xl px-5 py-2 text-white transition-colors ${nullSoundOn ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 hover:bg-gray-500'}`}
           >
-            {nullSoundOn ? '🔕 ปิดเสียง (null)' : '🔔 เปิดเสียง (null)'}
+            {nullSoundOn ? <SpeakerOnIcon /> : <SpeakerOffIcon />}
+            <span className="text-sm font-bold">เสียง ไม่ระบุ Type</span>
+            <span className="text-xs">{nullSoundOn ? '● เปิดอยู่' : '○ ปิดอยู่'}</span>
           </button>
-          <div className="flex items-center gap-2">
-            <span className={`h-4 w-4 rounded-full ${connected ? 'bg-green-500' : 'bg-red-400'}`} />
-            <span className="text-xl text-gray-500">{connected ? 'เชื่อมต่อแล้ว' : 'ขาดการเชื่อมต่อ'}</span>
+
+          {/* สถานะการเชื่อมต่อ */}
+          <div className={`flex flex-col items-center rounded-xl px-4 py-2 text-white ${connected ? 'bg-blue-500' : 'bg-red-400'}`}>
+            {connected ? <WifiIcon /> : <WarnIcon />}
+            <span className="text-sm font-bold">{connected ? 'เชื่อมต่อแล้ว' : 'ขาดการเชื่อมต่อ'}</span>
           </div>
         </div>
       </div>
