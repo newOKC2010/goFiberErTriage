@@ -51,11 +51,35 @@ func checkIPDAndBroadcast() {
 		log.Printf("[IPD] query error: %v", err)
 		return
 	}
-	log.Printf("[IPD] pending orders: %d", len(list))
-	for _, o := range list {
-		log.Printf("[IPD] DetailID:%s AN:%s HN:%s %s | แพทย์: %s | %s | %s %s",
-			o.DetailID, o.AN, o.HN, o.FullName, o.DoctorName, o.OrderType, o.OrderDate, o.OrderTime)
+
+	// group by order_id เหมือน frontend
+	type group struct {
+		an, hn, name, doctor, date, time string
+		types                            []string
 	}
+	orderMap := make(map[string]*group)
+	orderKeys := []string{}
+	for _, o := range list {
+		if _, ok := orderMap[o.OrderID]; !ok {
+			orderMap[o.OrderID] = &group{
+				an: o.AN, hn: o.HN, name: o.FullName,
+				doctor: o.DoctorName, date: o.OrderDate, time: o.OrderTime,
+			}
+			orderKeys = append(orderKeys, o.OrderID)
+		}
+		orderMap[o.OrderID].types = append(orderMap[o.OrderID].types, o.OrderType)
+	}
+
+	log.Printf("[IPD] ══════ pending %d detail / %d order ══════", len(list), len(orderKeys))
+	for _, k := range orderKeys {
+		g := orderMap[k]
+		log.Printf("[IPD] ┌ OrderID:%s  AN:%s  HN:%s", k, g.an, g.hn)
+		log.Printf("[IPD] │ %s", g.name)
+		log.Printf("[IPD] │ แพทย์: %s  |  %s %s", g.doctor, g.date, g.time)
+		log.Printf("[IPD] └ รายการ (%d): %v", len(g.types), g.types)
+	}
+	log.Printf("[IPD] ═══════════════════════════════════════════")
+
 	IPDHub.broadcast(list)
 }
 

@@ -71,9 +71,9 @@ func checkNullAndBroadcast() {
 		return
 	}
 	if len(list) > 0 {
+		log.Printf("[NULL] ══════ ยังไม่ระบุ type %d ราย ══════", len(list))
 		for _, a := range list {
-			log.Printf("[NULL] HN:%s %s | เข้า %s %s | รอ %d นาที (ยังไม่ระบุ type)",
-				a.HN, a.FullName, a.EnterERDate, a.EnterERTime, a.ElapsedMin)
+			log.Printf("[NULL] HN:%-8s  รอ %3d นาที  %s", a.HN, a.ElapsedMin, a.FullName)
 			go mophAlert.SendNullTypeAlert(a.HN, a.FullName, a.EnterERDate, a.EnterERTime, a.ElapsedMin)
 		}
 	}
@@ -87,23 +87,20 @@ func startupCheckAndBroadcast() {
 		log.Printf("[ALERT] startup query error: %v", err)
 		return
 	}
-	log.Printf("[ALERT] พบผู้ป่วยรอแพทย์ %d คน", len(patients))
+	log.Printf("[ALERT] ══════ ตรวจ startup %d ราย ══════", len(patients))
 
 	var alerts []utils.ERAlert
 	for _, p := range patients {
 		threshold, ok := utils.AlertThresholds[p.EmergencyType]
 		if !ok {
-			log.Printf("[ALERT] ข้าม HN:%s type=%d (ไม่มี threshold กำหนด)", p.HN, p.EmergencyType)
 			continue
 		}
 		elapsed := p.ElapsedMin
-		log.Printf("[ALERT] ตรวจ HN:%s type=%d elapsed=%d นาที threshold=%d นาที", p.HN, p.EmergencyType, elapsed, threshold)
 		if elapsed >= threshold {
 			enterDate := p.EnterERTime.Format("2006-01-02")
 			enterTime := p.EnterERTime.Format("15:04:05")
-			log.Printf("[ALERT][STARTUP] HN:%s %s | %s | เข้า %s %s | รอ %d นาที (threshold %d นาที)",
-				p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold,
-			)
+			log.Printf("[ALERT] HN:%-8s  รอ %3d/%d นาที  [%s]  %s",
+				p.HN, elapsed, threshold, p.EmergencyName, p.FullName)
 			go mophAlert.SendERAlert(p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold)
 			alerts = append(alerts, utils.ERAlert{
 				HN: p.HN, VN: p.VN, FullName: p.FullName,
@@ -137,9 +134,8 @@ func checkAndBroadcast() {
 		if elapsed >= threshold && elapsed%threshold == 0 {
 			enterDate := p.EnterERTime.Format("2006-01-02")
 			enterTime := p.EnterERTime.Format("15:04:05")
-			log.Printf("[ALERT] HN:%s %s | %s | เข้า %s %s | รอ %d นาที (ทุก %d นาที)",
-				p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold,
-			)
+			log.Printf("[ALERT] HN:%-8s  รอ %3d/%d นาที  [%s]  %s",
+				p.HN, elapsed, threshold, p.EmergencyName, p.FullName)
 			go mophAlert.SendERAlert(p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold)
 			alerts = append(alerts, utils.ERAlert{
 				HN: p.HN, VN: p.VN, FullName: p.FullName,
