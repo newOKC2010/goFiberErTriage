@@ -39,6 +39,20 @@ const DAYS_OPTIONS: DropdownOption[] = [
   { value: '7', label: 'ย้อนหลัง 7 วัน' },
 ]
 
+const TYPE_CONFIG: Record<string, { label: string; active: string; inactive: string }> = {
+  'Medication':        { label: 'Medication',        active: 'bg-blue-500 border-blue-500 text-white',       inactive: 'bg-white border-blue-300 text-blue-500 hover:bg-blue-50' },
+  'Operation':         { label: 'Operation',          active: 'bg-purple-500 border-purple-500 text-white',   inactive: 'bg-white border-purple-300 text-purple-500 hover:bg-purple-50' },
+  'Home Medication':   { label: 'Home Medication',    active: 'bg-teal-500 border-teal-500 text-white',       inactive: 'bg-white border-teal-300 text-teal-500 hover:bg-teal-50' },
+  'OPD/ER Treatment':  { label: 'OPD/ER Treatment',   active: 'bg-orange-500 border-orange-500 text-white',   inactive: 'bg-white border-orange-300 text-orange-500 hover:bg-orange-50' },
+  'Med Reconciliation':{ label: 'Med Reconciliation', active: 'bg-indigo-500 border-indigo-500 text-white',   inactive: 'bg-white border-indigo-300 text-indigo-500 hover:bg-indigo-50' },
+  'Examination':       { label: 'Examination',        active: 'bg-yellow-500 border-yellow-500 text-white',   inactive: 'bg-white border-yellow-300 text-yellow-600 hover:bg-yellow-50' },
+  'Other':             { label: 'Other',              active: 'bg-gray-500 border-gray-500 text-white',       inactive: 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100' },
+  'Off':               { label: 'Off',                active: 'bg-red-400 border-red-400 text-white',         inactive: 'bg-white border-red-300 text-red-400 hover:bg-red-50' },
+}
+const ALL_TYPES = Object.keys(TYPE_CONFIG)
+const DEFAULT_EXCLUDED = new Set(['Off', 'Other', 'Examination'])
+const DEFAULT_TYPES = ALL_TYPES.filter(t => !DEFAULT_EXCLUDED.has(t))
+
 type Applied = { doctor: string; sort: string; days: string }
 
 export default function DoctorOrderIPDPage() {
@@ -48,6 +62,7 @@ export default function DoctorOrderIPDPage() {
   const [doctorSel, setDoctorSel] = useState('')
   const [sortSel, setSortSel] = useState('asc')
   const [daysSel, setDaysSel] = useState('')
+  const [typesSel, setTypesSel] = useState<string[]>(DEFAULT_TYPES)
 
   // เงื่อนไขที่กดค้นหาแล้ว (null = โหมด real-time ไม่กรองอะไร)
   const [applied, setApplied] = useState<Applied | null>(null)
@@ -65,17 +80,23 @@ export default function DoctorOrderIPDPage() {
     return [{ value: '', label: 'ทั้งหมด' }, ...Array.from(s).sort().map(d => ({ value: d, label: d }))]
   }, [liveGroups, historyGroups, isHistoryMode])
 
-  // แสดงผล: ถ้ายังไม่กดค้นหา = real-time ทั้งหมด / กดแล้ว = กรอง 3 เงื่อนไขพร้อมกัน
+  // typesSel ทำงาน real-time ตลอด (ไม่ต้องกดค้นหา)
+  // applied ควบคุม doctor, sort, days เท่านั้น
   const displayGroups = useMemo(() => {
     const source = isHistoryMode ? historyGroups : liveGroups
-    if (!applied) return source
-    let g = applied.doctor ? source.filter(x => x.doctor_name === applied.doctor) : source
+    // filter type เสมอ (real-time)
+    const typeSet = new Set(typesSel)
+    let g = source
+      .map(x => ({ ...x, details: x.details.filter(d => typeSet.size === 0 || typeSet.has(d.order_type)) }))
+      .filter(x => x.details.length > 0)
+    if (!applied) return g
+    if (applied.doctor) g = g.filter(x => x.doctor_name === applied.doctor)
     return [...g].sort((a, b) => {
       const ta = `${a.order_date} ${a.details[0]?.order_time ?? ''}`
       const tb = `${b.order_date} ${b.details[0]?.order_time ?? ''}`
       return applied.sort === 'asc' ? ta.localeCompare(tb) : tb.localeCompare(ta)
     })
-  }, [liveGroups, historyGroups, applied, isHistoryMode])
+  }, [liveGroups, historyGroups, applied, isHistoryMode, typesSel])
 
   // pagination 5 คอลัมน์ × 6 แถว = 30 ใบ/หน้า (clamp หน้าอัตโนมัติเมื่อข้อมูล real-time เปลี่ยน)
   const PAGE_SIZE = 30
@@ -121,6 +142,7 @@ export default function DoctorOrderIPDPage() {
     setDoctorSel('')
     setSortSel('asc')
     setDaysSel('')
+    setTypesSel(DEFAULT_TYPES)
     setErrorMsg('')
     setPage(1)
   }
@@ -141,7 +163,7 @@ export default function DoctorOrderIPDPage() {
               real-time วันนี้ ({displayGroups.length} รายการ)
             </p>
           )}
-          <span className="text-sm text-red-400 italic">— คลิกที่รายชื่อเพื่อดูรายละเอียดการสั่ง order แพทย์</span>
+          <span className="text-sm text-red-400 italic">— คลิกที่รายชื่อเพื่อดูรายละเอียดการสั่ง order แพทย์ และสามารถเลือก กรองประเภท ORDER ได้</span>
         </div>
         <div className="flex items-center gap-2">
           <span className={`rounded-full px-3 py-1 text-sm font-bold text-white ${connected ? 'bg-green-500' : 'bg-red-500'}`}>
@@ -154,7 +176,43 @@ export default function DoctorOrderIPDPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="mb-3 flex flex-wrap items-end gap-3 rounded-xl bg-white px-3 py-2 shadow [&_button]:py-1.5 [&_button]:px-3 [&_button]:text-sm [&_label]:text-xs [&_label]:mb-1">
+      <div className="mb-3 rounded-xl bg-white px-3 py-2 shadow">
+        {/* Type checkboxes */}
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-bold text-gray-600">ประเภท ORDER:</span>
+          {ALL_TYPES.map(t => {
+            const checked = typesSel.includes(t)
+            const cfg = TYPE_CONFIG[t]
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTypesSel(prev => checked ? prev.filter(x => x !== t) : [...prev, t])}
+                className={`cursor-pointer rounded-full border px-3 py-1 text-sm font-bold transition-all shadow-sm ${checked ? cfg.active : cfg.inactive}`}
+              >
+                {cfg.label}
+              </button>
+            )
+          })}
+          {/* แบ่งด้วยเส้นตั้ง */}
+          <span className="mx-1 h-6 w-px bg-gray-300" />
+          <button
+            type="button"
+            onClick={() => setTypesSel(ALL_TYPES)}
+            className="cursor-pointer rounded-lg border-2 border-green-500 bg-green-500 px-3 py-1 text-sm font-bold text-white shadow-sm transition-all hover:bg-green-600"
+          >
+            เลือกทั้งหมด
+          </button>
+          <button
+            type="button"
+            onClick={() => setTypesSel(DEFAULT_TYPES)}
+            className="cursor-pointer rounded-lg border-2 border-amber-400 bg-amber-400 px-3 py-1 text-sm font-bold text-white shadow-sm transition-all hover:bg-amber-500"
+          >
+            ค่าเริ่มต้น
+          </button>
+        </div>
+        {/* Dropdowns + ปุ่ม */}
+        <div className="flex flex-wrap items-end gap-3 [&_button]:py-1.5 [&_button]:px-3 [&_button]:text-sm [&_label]:text-xs [&_label]:mb-1">
         <Dropdown
           label="แพทย์"
           options={doctorOptions}
@@ -183,6 +241,7 @@ export default function DoctorOrderIPDPage() {
         <Button variant="secondary" size="sm" onClick={handleClear} icon="refresh">
           ล้างค่า (real-time)
         </Button>
+        </div>
       </div>
 
       {/* Error */}
@@ -257,7 +316,7 @@ export default function DoctorOrderIPDPage() {
               {selected.details.map((d, i) => (
                 <div key={d.detail_id} className="flex items-start gap-3 text-base font-bold">
                   <span className="min-w-[2rem] text-blue-500">{i + 1}.</span>
-                  <span className="rounded-full bg-blue-100 px-3 py-0.5 text-blue-700">
+                  <span className={`rounded-full px-3 py-0.5 text-xs font-bold ${TYPE_CONFIG[d.order_type]?.active ?? 'bg-blue-100 text-blue-700'}`}>
                     {d.order_type}
                   </span>
                   <span className="flex-1 text-gray-800">{d.order_text}</span>
