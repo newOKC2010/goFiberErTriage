@@ -10,6 +10,7 @@ func SetupRoutes(app *fiber.App) {
 	er := app.Group("/api/er")
 	er.Get("/alerts", handler.ERAlertSSE)
 	er.Get("/null-type", handler.NullTypeSSE)
+	er.Post("/alerts/:vn/clear", handler.ClearERAlert)
 
 	ipd := app.Group("/api/ipd")
 	ipd.Get("/orders", handler.IPDOrderSSE)

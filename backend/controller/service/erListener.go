@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -82,76 +81,38 @@ func checkNullAndBroadcast() {
 
 // startupCheckAndBroadcast ตรวจสอบทันทีตอน server start
 func startupCheckAndBroadcast() {
-	patients, err := GetPendingERPatients()
-	if err != nil {
-		log.Printf("[ALERT] startup query error: %v", err)
-		return
-	}
-	log.Printf("[ALERT] ══════ ตรวจ startup %d ราย ══════", len(patients))
-
-	var alerts []utils.ERAlert
-	for _, p := range patients {
-		threshold, ok := utils.AlertThresholds[p.EmergencyType]
-		if !ok {
-			continue
-		}
-		elapsed := p.ElapsedMin
-		if elapsed >= threshold {
-			enterDate := p.EnterERTime.Format("2006-01-02")
-			enterTime := p.EnterERTime.Format("15:04:05")
-			log.Printf("[ALERT] HN:%-8s  รอ %3d/%d นาที  [%s]  %s",
-				p.HN, elapsed, threshold, p.EmergencyName, p.FullName)
-			go mophAlert.SendERAlert(p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold)
-			alerts = append(alerts, utils.ERAlert{
-				HN: p.HN, VN: p.VN, FullName: p.FullName,
-				EmergencyType: p.EmergencyType, EmergencyName: p.EmergencyName,
-				EnterERDate: p.EnterERTime.Format("2006-01-02"),
-				EnterERTime: p.EnterERTime.Format("15:04:05"),
-				ElapsedMin: elapsed, ThresholdMin: threshold,
-				Message: fmt.Sprintf("[%s] %s รอแพทย์ %d นาที (threshold %d นาที)",
-					p.EmergencyName, p.FullName, elapsed, threshold),
-			})
-		}
-	}
-	Hub.broadcast(alerts)
+	checkAndBroadcast()
 }
 
-// checkAndBroadcast query + เช็ค threshold + broadcast
+// checkAndBroadcast query er_alert_monitor WHERE status='T' → เช็ค threshold → broadcast
 func checkAndBroadcast() {
-	patients, err := GetPendingERPatients()
+	list, err := GetPendingERAlerts()
 	if err != nil {
 		log.Printf("[ALERT] query error: %v", err)
 		return
 	}
 
 	var alerts []utils.ERAlert
-	for _, p := range patients {
-		threshold, ok := utils.AlertThresholds[p.EmergencyType]
+	for _, a := range list {
+		threshold, ok := utils.AlertThresholds[a.EmergencyType]
 		if !ok {
 			continue
 		}
-		elapsed := p.ElapsedMin
+		elapsed := a.ElapsedMin
+		// broadcast เฉพาะจุดที่เป็นพหุคูณของ threshold (4, 8, 12...)
 		if elapsed >= threshold && elapsed%threshold == 0 {
-			enterDate := p.EnterERTime.Format("2006-01-02")
-			enterTime := p.EnterERTime.Format("15:04:05")
+			a.ThresholdMin = threshold
+			alerts = append(alerts, a)
 			log.Printf("[ALERT] HN:%-8s  รอ %3d/%d นาที  [%s]  %s",
-				p.HN, elapsed, threshold, p.EmergencyName, p.FullName)
-			go mophAlert.SendERAlert(p.HN, p.FullName, p.EmergencyName, enterDate, enterTime, elapsed, threshold)
-			alerts = append(alerts, utils.ERAlert{
-				HN: p.HN, VN: p.VN, FullName: p.FullName,
-				EmergencyType: p.EmergencyType, EmergencyName: p.EmergencyName,
-				EnterERDate: p.EnterERTime.Format("2006-01-02"),
-				EnterERTime: p.EnterERTime.Format("15:04:05"),
-				ElapsedMin: elapsed, ThresholdMin: threshold,
-				Message: fmt.Sprintf("[%s] %s รอแพทย์ %d นาที (แจ้งเตือนทุก %d นาที)",
-					p.EmergencyName, p.FullName, elapsed, threshold),
-			})
+				a.HN, elapsed, threshold, a.EmergencyName, a.FullName)
+			go mophAlert.SendERAlert(a.HN, a.FullName, a.EmergencyName,
+				a.EnterERDate, a.EnterERTime, elapsed, threshold)
 		}
 	}
 	Hub.broadcast(alerts)
 }
 
-// InitERListener เริ่ม listen channel 'er_update' จาก PostgreSQL
+// InitERListener เริ่ม listen channel 'er_alert_update' จาก PostgreSQL
 func InitERListener() {
 	var connStr string
 	if os.Getenv("SELECT_START_DB") == "DEV" {
@@ -173,10 +134,10 @@ func InitERListener() {
 		},
 	)
 
-	if err := listener.Listen("er_update"); err != nil {
+	if err := listener.Listen("er_alert_update"); err != nil {
 		log.Fatalf("[LISTEN] ไม่สามารถ listen ได้: %v", err)
 	}
-	log.Println("[LISTEN] กำลัง listen channel 'er_update' ✓")
+	log.Println("[LISTEN] กำลัง listen channel 'er_alert_update' ✓")
 
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)

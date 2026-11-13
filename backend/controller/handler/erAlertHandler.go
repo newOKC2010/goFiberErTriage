@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,6 +13,21 @@ import (
 	"tiage/controller/service"
 	"tiage/controller/utils"
 )
+
+// ClearERAlert POST /api/er/alerts/:vn/clear
+// อัปเดต status='F' แล้ว broadcast snapshot ใหม่ทันที
+func ClearERAlert(c *fiber.Ctx) error {
+	vn := c.Params("vn")
+	if vn == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "vn required"})
+	}
+	if err := service.ClearERAlert(vn); err != nil {
+		log.Printf("[ALERT] clear vn=%s error: %v", vn, err)
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	log.Printf("[ALERT] cleared vn=%s", vn)
+	return c.JSON(fiber.Map{"ok": true, "vn": vn})
+}
 
 // NullTypeSSE ส่งผู้ป่วยที่ยังไม่ระบุ emergency type
 func NullTypeSSE(c *fiber.Ctx) error {
