@@ -4,20 +4,15 @@ import { API_ENDPOINTS } from '@/global/globalApi'
 import { ERAlert } from './TYPE'
 import { getAudioCtx, playERBeep } from './audio'
 
-// ERAlert + expiresAt (ms) สำหรับ auto-remove
 type ERAlertLocal = ERAlert & { expiresAt: number }
 
-// parse "60m" / "30s" → ms  (default 60 วินาที)
 function parseDurationMs(s?: string): number {
   if (!s) return 60_000
   const n = parseInt(s)
   if (isNaN(n)) return 60_000
-  if (s.endsWith('s')) return n * 1_000
-  return n * 60_000 // default: นาที
+  return s.endsWith('s') ? n * 1_000 : n * 60_000
 }
 const CARD_TTL_MS = parseDurationMs(process.env.NEXT_PUBLIC_TIME_CARD)
-
-
 
 export function useERAlert() {
   const [alerts, setAlerts] = useState<ERAlert[]>([])
@@ -43,6 +38,13 @@ export function useERAlert() {
     } else {
       if (beepRef.current) clearInterval(beepRef.current)
       beepRef.current = null
+    }
+  }
+
+  // ลบ alert ออกจาก local ทันที (เรียกจากปุ่ม clear)
+  function clearAlert(vn: string) {
+    if (localAlerts.current.delete(vn)) {
+      sync(localAlerts.current)
     }
   }
 
@@ -77,11 +79,12 @@ export function useERAlert() {
         if (!e.data || e.data.trim() === '') return
         try {
           const newAlerts: ERAlert[] | null = JSON.parse(e.data)
-          if (!newAlerts || newAlerts.length === 0) return // ไม่ลบ card ถ้า backend ส่งว่าง
+          if (!newAlerts) return
 
-          const expiry = Date.now() + CARD_TTL_MS
+          // แสดง card ตาม NEXT_PUBLIC_TIME_CARD แล้วหายไปเอง
+          const expiresAt = Date.now() + CARD_TTL_MS
           newAlerts.forEach((a) => {
-            localAlerts.current.set(a.vn, { ...a, expiresAt: expiry })
+            localAlerts.current.set(a.vn, { ...a, expiresAt })
           })
           sync(localAlerts.current)
         } catch {}
@@ -105,7 +108,7 @@ export function useERAlert() {
     }
   }, [])
 
-  // interval ลบ card ที่หมดเวลา
+  // ลบ card ที่หมดเวลา (CARD_TTL) — จะกลับมาใหม่เมื่อ backend ส่งรอบถัดไป
   useEffect(() => {
     const timer = setInterval(() => {
       const now = Date.now()
@@ -121,5 +124,5 @@ export function useERAlert() {
     return () => clearInterval(timer)
   }, [])
 
-  return { alerts, connected, soundOn, toggleSound }
+  return { alerts, connected, soundOn, toggleSound, clearAlert }
 }

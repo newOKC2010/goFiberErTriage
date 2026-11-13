@@ -3,6 +3,7 @@ import { useERAlert } from './useERAlert'
 import { useNullTypeAlert } from './useNullTypeAlert'
 import ERAlertCard from './ERAlertCard'
 import NullTypeCard from './NullTypeCard'
+import { API_ENDPOINTS } from '@/global/globalApi'
 
 function SpeakerOnIcon() {
   return (
@@ -42,11 +43,16 @@ function WarnIcon() {
 }
 
 export default function TriagePage() {
-  const { alerts, connected, soundOn, toggleSound } = useERAlert()
+  const { alerts, connected, soundOn, toggleSound, clearAlert } = useERAlert()
   const { alerts: nullAlerts, soundOn: nullSoundOn, toggleSound: toggleNullSound } = useNullTypeAlert()
 
   const visibleAlerts = alerts.slice(0, 10)
   const visibleNull = nullAlerts.slice(0, 10)
+
+  async function handleClear(vn: string) {
+    clearAlert(vn) // ลบจาก frontend ทันที
+    await fetch(API_ENDPOINTS.ER.CLEAR(vn), { method: 'POST' })
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
@@ -117,7 +123,7 @@ export default function TriagePage() {
             </div>
           ) : (
             visibleAlerts.map((a) => (
-              <ERAlertCard key={`${a.vn}-${a.elapsed_min}`} alert={a} />
+              <ERAlertCard key={`${a.vn}-${a.elapsed_min}`} alert={a} onClear={handleClear} />
             ))
           )}
         </div>
