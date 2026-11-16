@@ -92,8 +92,25 @@ func checkAndBroadcast() {
 		return
 	}
 
+	// ตรวจสอบ discharge จาก ovst ก่อน broadcast
+	vns := make([]string, 0, len(list))
+	for _, a := range list {
+		vns = append(vns, a.VN)
+	}
+	discharged, err := AutoClearDischargedAlerts(vns)
+	if err != nil {
+		log.Printf("[ALERT] auto-clear error: %v", err)
+	}
+	for vn := range discharged {
+		log.Printf("[ALERT] auto-clear (discharged) vn=%s", vn)
+	}
+
 	var alerts []utils.ERAlert
 	for _, a := range list {
+		// ข้าม vn ที่เพิ่ง discharge
+		if discharged[a.VN] {
+			continue
+		}
 		threshold, ok := utils.AlertThresholds[a.EmergencyType]
 		if !ok {
 			continue

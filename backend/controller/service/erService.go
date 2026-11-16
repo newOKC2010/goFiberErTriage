@@ -120,6 +120,73 @@ func ClearERAlert(vn string) error {
 	return err
 }
 
+// AutoClearDischargedAlerts ตรวจสอบ ovst ว่า vn ถูก discharge แล้วหรือยัง
+// ovstist IN ('07','12','13') หรือ ovstost = '99' → auto set status='F'
+// คืนค่า set ของ vn ที่ถูก clear เพื่อ skip การ broadcast
+func AutoClearDischargedAlerts(vns []string) (map[string]bool, error) {
+	if len(vns) == 0 {
+		return nil, nil
+	}
+	db := conn.Db
+
+	// สร้าง placeholders $1,$2,...
+	placeholders := ""
+	args := make([]interface{}, len(vns))
+	for i, v := range vns {
+		if i > 0 {
+			placeholders += ","
+		}
+		placeholders += fmt.Sprintf("$%d", i+1)
+		args[i] = v
+	}
+
+	query := fmt.Sprintf(`
+		SELECT vn FROM ovst
+		WHERE vn IN (%s)
+		  AND (ovstist IN ('07','12','13') OR ovstost = '99')
+	`, placeholders)
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cleared := make(map[string]bool)
+	for rows.Next() {
+		var vn string
+		if err := rows.Scan(&vn); err != nil {
+			return nil, err
+		}
+		cleared[vn] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(cleared) > 0 {
+		clearVns := make([]string, 0, len(cleared))
+		for v := range cleared {
+			clearVns = append(clearVns, "'"+v+"'")
+		}
+		updateQ := fmt.Sprintf(`UPDATE er_alert_monitor SET status='F' WHERE vn IN (%s)`,
+			func() string {
+				s := ""
+				for i, v := range clearVns {
+					if i > 0 {
+						s += ","
+					}
+					s += v
+				}
+				return s
+			}())
+		if _, err := db.Exec(updateQ); err != nil {
+			return cleared, err
+		}
+	}
+	return cleared, nil
+}
+
 // GetNullTypePatients ดึงผู้ป่วยที่เข้า ER แล้วแต่ยังไม่ระบุ emergency type
 // ไม่สน doctor_tx_time
 func GetNullTypePatients() ([]utils.NullTypeAlert, error) {
