@@ -120,16 +120,15 @@ func ClearERAlert(vn string) error {
 	return err
 }
 
-// AutoClearDischargedAlerts ตรวจสอบ ovst ว่า vn ถูก discharge แล้วหรือยัง
-// ovstist IN ('07','12','13') หรือ ovstost = '99' → auto set status='F'
-// คืนค่า set ของ vn ที่ถูก clear เพื่อ skip การ broadcast
+// AutoClearDischargedAlerts ตรวจสอบ vn_stat ว่า pdx มีค่าแล้วหรือยัง
+// pdx IS NULL หรือ ค่าว่าง → ส่งปกติ
+// pdx มีค่า → auto set status='F' และไม่ส่ง frontend/MOPH
 func AutoClearDischargedAlerts(vns []string) (map[string]bool, error) {
 	if len(vns) == 0 {
 		return nil, nil
 	}
 	db := conn.Db
 
-	// สร้าง placeholders $1,$2,...
 	placeholders := ""
 	args := make([]interface{}, len(vns))
 	for i, v := range vns {
@@ -141,9 +140,9 @@ func AutoClearDischargedAlerts(vns []string) (map[string]bool, error) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT vn FROM ovst
+		SELECT vn FROM vn_stat
 		WHERE vn IN (%s)
-		  AND (ovstist IN ('07','12','13') OR ovstost = '99')
+		  AND pdx IS NOT NULL AND pdx <> ''
 	`, placeholders)
 
 	rows, err := db.Query(query, args...)
@@ -165,22 +164,18 @@ func AutoClearDischargedAlerts(vns []string) (map[string]bool, error) {
 	}
 
 	if len(cleared) > 0 {
-		clearVns := make([]string, 0, len(cleared))
+		clearArgs := make([]interface{}, 0, len(cleared))
+		ph := ""
+		i := 1
 		for v := range cleared {
-			clearVns = append(clearVns, "'"+v+"'")
+			if i > 1 {
+				ph += ","
+			}
+			ph += fmt.Sprintf("$%d", i)
+			clearArgs = append(clearArgs, v)
+			i++
 		}
-		updateQ := fmt.Sprintf(`UPDATE er_alert_monitor SET status='F' WHERE vn IN (%s)`,
-			func() string {
-				s := ""
-				for i, v := range clearVns {
-					if i > 0 {
-						s += ","
-					}
-					s += v
-				}
-				return s
-			}())
-		if _, err := db.Exec(updateQ); err != nil {
+		if _, err := db.Exec(fmt.Sprintf(`UPDATE er_alert_monitor SET status='F' WHERE vn IN (%s)`, ph), clearArgs...); err != nil {
 			return cleared, err
 		}
 	}
