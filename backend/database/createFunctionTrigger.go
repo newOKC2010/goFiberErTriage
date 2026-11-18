@@ -32,6 +32,17 @@ func CreateERNotifyTrigger() {
 	}
 	log.Println("[MODEL] table er_alert_monitor ✓")
 
+	// เพิ่ม columns log (ถ้ายังไม่มี)
+	alterSQL := `
+		ALTER TABLE er_alert_monitor
+			ADD COLUMN IF NOT EXISTS last_alert_at   TIMESTAMP,
+			ADD COLUMN IF NOT EXISTS pdx_detected_at TIMESTAMP
+	`
+	if _, err := Db.Exec(alterSQL); err != nil {
+		log.Fatalf("[MODEL] ALTER TABLE er_alert_monitor ไม่สำเร็จ: %v", err)
+	}
+	log.Println("[MODEL] columns last_alert_at, pdx_detected_at ✓")
+
 	// trigger function: INSERT หรือ UPDATE er_emergency_type บน er_regist
 	fnSQL := `
 		CREATE OR REPLACE FUNCTION fn_er_alert_monitor()

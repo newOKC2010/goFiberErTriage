@@ -122,6 +122,7 @@ func checkAndBroadcast() {
 			alerts = append(alerts, a)
 			log.Printf("[ALERT] HN:%-8s  รอ %3d/%d นาที  [%s]  %s",
 				a.HN, elapsed, threshold, a.EmergencyName, a.FullName)
+			go UpdateLastAlertAt(a.VN)
 			go mophAlert.SendERAlert(a.HN, a.FullName, a.EmergencyName,
 				a.EnterERDate, a.EnterERTime, elapsed, threshold)
 		}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"tiage/controller/utils"
@@ -175,11 +176,20 @@ func AutoClearDischargedAlerts(vns []string) (map[string]bool, error) {
 			clearArgs = append(clearArgs, v)
 			i++
 		}
-		if _, err := db.Exec(fmt.Sprintf(`UPDATE er_alert_monitor SET status='F' WHERE vn IN (%s)`, ph), clearArgs...); err != nil {
+		q := fmt.Sprintf(`UPDATE er_alert_monitor SET status='F', pdx_detected_at=NOW() WHERE vn IN (%s)`, ph)
+		if _, err := db.Exec(q, clearArgs...); err != nil {
 			return cleared, err
 		}
 	}
 	return cleared, nil
+}
+
+// UpdateLastAlertAt บันทึกเวลาที่ส่ง alert ล่าสุด
+func UpdateLastAlertAt(vn string) {
+	db := conn.Db
+	if _, err := db.Exec(`UPDATE er_alert_monitor SET last_alert_at=NOW() WHERE vn=$1`, vn); err != nil {
+		log.Printf("[ALERT] UpdateLastAlertAt vn=%s error: %v", vn, err)
+	}
 }
 
 // GetNullTypePatients ดึงผู้ป่วยที่เข้า ER แล้วแต่ยังไม่ระบุ emergency type
