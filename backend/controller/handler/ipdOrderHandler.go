@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
 
-	"tiage/controller/service"
+	ipdSvc "tiage/controller/service/ipd"
 	"tiage/controller/utils"
 )
 
@@ -19,7 +19,7 @@ func IPDOrderHistory(c *fiber.Ctx) error {
 	if days < 1 || days > 30 {
 		days = 1
 	}
-	list, err := service.GetIPDOrderHistory(days)
+	list, err := ipdSvc.GetIPDOrderHistory(days)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -38,8 +38,8 @@ func IPDOrderSSE(c *fiber.Ctx) error {
 
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		ch := make(chan []utils.IPDOrderAlert, 1)
-		service.IPDHub.Register(ch)
-		defer service.IPDHub.Unregister(ch)
+		ipdSvc.IPDHub.Register(ch)
+		defer ipdSvc.IPDHub.Unregister(ch)
 
 		pingTicker := time.NewTicker(10 * time.Second)
 		defer pingTicker.Stop()

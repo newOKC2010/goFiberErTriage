@@ -1,49 +1,12 @@
-package service
+package ipd
 
 import (
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/lib/pq"
-
-	"tiage/controller/utils"
 )
-
-// IPDHub — SSE hub สำหรับ IPD order alerts (snapshot)
-var IPDHub = &ipdHub{clients: make(map[chan []utils.IPDOrderAlert]struct{})}
-
-type ipdHub struct {
-	mu      sync.Mutex
-	clients map[chan []utils.IPDOrderAlert]struct{}
-}
-
-func (h *ipdHub) Register(ch chan []utils.IPDOrderAlert) {
-	h.mu.Lock()
-	h.clients[ch] = struct{}{}
-	h.mu.Unlock()
-}
-
-func (h *ipdHub) Unregister(ch chan []utils.IPDOrderAlert) {
-	h.mu.Lock()
-	delete(h.clients, ch)
-	h.mu.Unlock()
-}
-
-func (h *ipdHub) broadcast(list []utils.IPDOrderAlert) {
-	if list == nil {
-		list = []utils.IPDOrderAlert{}
-	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	for ch := range h.clients {
-		select {
-		case ch <- list:
-		default:
-		}
-	}
-}
 
 func checkIPDAndBroadcast() {
 	list, err := GetPendingIPDOrders()
@@ -52,7 +15,6 @@ func checkIPDAndBroadcast() {
 		return
 	}
 
-	// group by order_id เหมือน frontend
 	type group struct {
 		an, hn, name, doctor, date, time string
 		types                            []string
@@ -83,7 +45,6 @@ func checkIPDAndBroadcast() {
 	IPDHub.broadcast(list)
 }
 
-// StartIPDListener เริ่ม listen channel 'ipd_order_update' จาก PostgreSQL
 func StartIPDListener() {
 	var connStr string
 	if os.Getenv("SELECT_START_DB") == "DEV" {

@@ -36,6 +36,8 @@ func CreateERNotifyTrigger() {
 	alterSQL := `
 		ALTER TABLE er_alert_monitor
 			ADD COLUMN IF NOT EXISTS last_alert_at   TIMESTAMP,
+			ADD COLUMN IF NOT EXISTS first_alert_at  TIMESTAMP,
+			ADD COLUMN IF NOT EXISTS alert_count     INTEGER DEFAULT 0,
 			ADD COLUMN IF NOT EXISTS pdx_detected_at TIMESTAMP
 	`
 	if _, err := Db.Exec(alterSQL); err != nil {

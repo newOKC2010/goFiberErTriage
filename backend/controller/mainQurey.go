@@ -1,11 +1,12 @@
 package controller
 
 import (
-	service "tiage/controller/service"
+	erSvc "tiage/controller/service/er"
+	ipdSvc "tiage/controller/service/ipd"
 )
 
 // Init เริ่มต้น service และ handler ทั้งหมด
 func Init() {
-	service.InitERListener()
-	go service.StartIPDListener()
+	erSvc.InitERListener()
+	go ipdSvc.StartIPDListener()
 }

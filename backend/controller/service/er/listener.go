@@ -1,9 +1,8 @@
-package service
+package er
 
 import (
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/lib/pq"
@@ -12,57 +11,6 @@ import (
 	"tiage/controller/utils"
 )
 
-// notifyHub broadcast []ERAlert ไปยัง SSE clients
-type notifyHub struct {
-	mu      sync.Mutex
-	clients map[chan []utils.ERAlert]struct{}
-}
-
-var Hub = &notifyHub{clients: make(map[chan []utils.ERAlert]struct{})}
-
-func (h *notifyHub) Register(ch chan []utils.ERAlert) {
-	h.mu.Lock(); h.clients[ch] = struct{}{}; h.mu.Unlock()
-}
-func (h *notifyHub) Unregister(ch chan []utils.ERAlert) {
-	h.mu.Lock(); delete(h.clients, ch); h.mu.Unlock()
-}
-func (h *notifyHub) broadcast(alerts []utils.ERAlert) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	for ch := range h.clients {
-		select {
-		case ch <- alerts:
-		default:
-		}
-	}
-}
-
-// NullTypeHub สำหรับผู้ป่วยที่ยังไม่ระบุ emergency type
-type nullTypeHub struct {
-	mu      sync.Mutex
-	clients map[chan []utils.NullTypeAlert]struct{}
-}
-
-var NullHub = &nullTypeHub{clients: make(map[chan []utils.NullTypeAlert]struct{})}
-
-func (h *nullTypeHub) Register(ch chan []utils.NullTypeAlert) {
-	h.mu.Lock(); h.clients[ch] = struct{}{}; h.mu.Unlock()
-}
-func (h *nullTypeHub) Unregister(ch chan []utils.NullTypeAlert) {
-	h.mu.Lock(); delete(h.clients, ch); h.mu.Unlock()
-}
-func (h *nullTypeHub) broadcast(alerts []utils.NullTypeAlert) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	for ch := range h.clients {
-		select {
-		case ch <- alerts:
-		default:
-		}
-	}
-}
-
-// checkNullAndBroadcast query ผู้ป่วย null type แล้ว broadcast
 func checkNullAndBroadcast() {
 	list, err := GetNullTypePatients()
 	if err != nil {
@@ -79,12 +27,6 @@ func checkNullAndBroadcast() {
 	NullHub.broadcast(list)
 }
 
-// startupCheckAndBroadcast ตรวจสอบทันทีตอน server start
-func startupCheckAndBroadcast() {
-	checkAndBroadcast()
-}
-
-// checkAndBroadcast query er_alert_monitor WHERE status='T' → เช็ค threshold → broadcast
 func checkAndBroadcast() {
 	list, err := GetPendingERAlerts()
 	if err != nil {
@@ -92,7 +34,6 @@ func checkAndBroadcast() {
 		return
 	}
 
-	// ตรวจสอบ discharge จาก ovst ก่อน broadcast
 	vns := make([]string, 0, len(list))
 	for _, a := range list {
 		vns = append(vns, a.VN)
@@ -107,7 +48,6 @@ func checkAndBroadcast() {
 
 	var alerts []utils.ERAlert
 	for _, a := range list {
-		// ข้าม vn ที่เพิ่ง discharge
 		if discharged[a.VN] {
 			continue
 		}
@@ -116,7 +56,6 @@ func checkAndBroadcast() {
 			continue
 		}
 		elapsed := a.ElapsedMin
-		// broadcast เฉพาะจุดที่เป็นพหุคูณของ threshold (4, 8, 12...)
 		if elapsed >= threshold && elapsed%threshold == 0 {
 			a.ThresholdMin = threshold
 			alerts = append(alerts, a)
@@ -130,7 +69,6 @@ func checkAndBroadcast() {
 	Hub.broadcast(alerts)
 }
 
-// InitERListener เริ่ม listen channel 'er_alert_update' จาก PostgreSQL
 func InitERListener() {
 	var connStr string
 	if os.Getenv("SELECT_START_DB") == "DEV" {
@@ -162,7 +100,7 @@ func InitERListener() {
 		defer ticker.Stop()
 
 		log.Println("[ALERT] ตรวจสอบผู้ป่วยค้างจากก่อน restart...")
-		startupCheckAndBroadcast()
+		checkAndBroadcast()
 		checkNullAndBroadcast()
 
 		for {
@@ -180,7 +118,6 @@ func InitERListener() {
 				Hub.mu.Lock()
 				clientCount := len(Hub.clients)
 				Hub.mu.Unlock()
-
 				if err := listener.Ping(); err != nil {
 					log.Printf("[LISTEN] ping ไม่สำเร็จ: %v", err)
 				} else {

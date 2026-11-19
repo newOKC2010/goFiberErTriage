@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
 
-	"tiage/controller/service"
+	erSvc "tiage/controller/service/er"
 	"tiage/controller/utils"
 )
 
@@ -21,7 +21,7 @@ func ClearERAlert(c *fiber.Ctx) error {
 	if vn == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "vn required"})
 	}
-	if err := service.ClearERAlert(vn); err != nil {
+	if err := erSvc.ClearERAlert(vn); err != nil {
 		log.Printf("[ALERT] clear vn=%s error: %v", vn, err)
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -38,8 +38,8 @@ func NullTypeSSE(c *fiber.Ctx) error {
 
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		ch := make(chan []utils.NullTypeAlert, 1)
-		service.NullHub.Register(ch)
-		defer service.NullHub.Unregister(ch)
+		erSvc.NullHub.Register(ch)
+		defer erSvc.NullHub.Unregister(ch)
 
 		pingTicker := time.NewTicker(10 * time.Second)
 		defer pingTicker.Stop()
@@ -77,8 +77,8 @@ func ERAlertSSE(c *fiber.Ctx) error {
 
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		ch := make(chan []utils.ERAlert, 1)
-		service.Hub.Register(ch)
-		defer service.Hub.Unregister(ch)
+		erSvc.Hub.Register(ch)
+		defer erSvc.Hub.Unregister(ch)
 
 		// keepalive ping ป้องกัน connection timeout
 		pingTicker := time.NewTicker(10 * time.Second)

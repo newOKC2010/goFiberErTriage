@@ -1,11 +1,10 @@
-package service
+package ipd
 
 import (
 	"tiage/controller/utils"
 	conn "tiage/database"
 )
 
-// GetIPDOrderHistory ดึง IPD order detail ย้อนหลัง N วัน (กรอง is_start IS DISTINCT FROM 'Y' เหมือนกัน)
 func GetIPDOrderHistory(days int) ([]utils.IPDOrderAlert, error) {
 	db := conn.Db
 	query := `
@@ -52,7 +51,6 @@ func GetIPDOrderHistory(days int) ([]utils.IPDOrderAlert, error) {
 	return list, nil
 }
 
-// GetPendingIPDOrders ดึง IPD order detail ที่ยังไม่ได้เริ่ม (is_start IS NULL หรือ '')
 func GetPendingIPDOrders() ([]utils.IPDOrderAlert, error) {
 	db := conn.Db
 	query := `

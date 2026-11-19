@@ -1,15 +1,13 @@
-package service
+package er
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"tiage/controller/utils"
 	conn "tiage/database"
 )
 
-// GetPendingERPatients ดึงผู้ป่วยที่เข้า ER แล้วแต่ยังไม่ได้รับการตรวจ (doctor_tx_time IS NULL)
 func GetPendingERPatients() ([]utils.ERPatient, error) {
 	db := conn.Db
 	query := `
@@ -34,7 +32,6 @@ func GetPendingERPatients() ([]utils.ERPatient, error) {
 		ORDER BY
 			er.enter_er_time
 	`
-
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -45,14 +42,8 @@ func GetPendingERPatients() ([]utils.ERPatient, error) {
 	for rows.Next() {
 		var p utils.ERPatient
 		if err := rows.Scan(
-			&p.VstDate,
-			&p.HN,
-			&p.VN,
-			&p.FullName,
-			&p.EmergencyType,
-			&p.EmergencyName,
-			&p.EnterERTime,
-			&p.ElapsedMin,
+			&p.VstDate, &p.HN, &p.VN, &p.FullName,
+			&p.EmergencyType, &p.EmergencyName, &p.EnterERTime, &p.ElapsedMin,
 		); err != nil {
 			return nil, err
 		}
@@ -61,7 +52,6 @@ func GetPendingERPatients() ([]utils.ERPatient, error) {
 	return patients, rows.Err()
 }
 
-// GetPendingERAlerts ดึง er_alert_monitor ที่ status='T' join er_regist เพื่อเอาข้อมูล patient
 func GetPendingERAlerts() ([]utils.ERAlert, error) {
 	db := conn.Db
 	query := `
@@ -94,8 +84,7 @@ func GetPendingERAlerts() ([]utils.ERAlert, error) {
 	for rows.Next() {
 		var a utils.ERAlert
 		var enterTime time.Time
-		var emergencyType int
-		var elapsedMin int
+		var emergencyType, elapsedMin int
 		if err := rows.Scan(
 			&a.HN, &a.VN, &a.FullName,
 			&emergencyType, &a.EmergencyName,
@@ -114,86 +103,6 @@ func GetPendingERAlerts() ([]utils.ERAlert, error) {
 	return alerts, rows.Err()
 }
 
-// ClearERAlert อัปเดต status='F' ใน er_alert_monitor
-func ClearERAlert(vn string) error {
-	db := conn.Db
-	_, err := db.Exec(`UPDATE er_alert_monitor SET status='F' WHERE vn=$1`, vn)
-	return err
-}
-
-// AutoClearDischargedAlerts ตรวจสอบ vn_stat ว่า pdx มีค่าแล้วหรือยัง
-// pdx IS NULL หรือ ค่าว่าง → ส่งปกติ
-// pdx มีค่า → auto set status='F' และไม่ส่ง frontend/MOPH
-func AutoClearDischargedAlerts(vns []string) (map[string]bool, error) {
-	if len(vns) == 0 {
-		return nil, nil
-	}
-	db := conn.Db
-
-	placeholders := ""
-	args := make([]interface{}, len(vns))
-	for i, v := range vns {
-		if i > 0 {
-			placeholders += ","
-		}
-		placeholders += fmt.Sprintf("$%d", i+1)
-		args[i] = v
-	}
-
-	query := fmt.Sprintf(`
-		SELECT vn FROM vn_stat
-		WHERE vn IN (%s)
-		  AND pdx IS NOT NULL AND pdx <> ''
-	`, placeholders)
-
-	rows, err := db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	cleared := make(map[string]bool)
-	for rows.Next() {
-		var vn string
-		if err := rows.Scan(&vn); err != nil {
-			return nil, err
-		}
-		cleared[vn] = true
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if len(cleared) > 0 {
-		clearArgs := make([]interface{}, 0, len(cleared))
-		ph := ""
-		i := 1
-		for v := range cleared {
-			if i > 1 {
-				ph += ","
-			}
-			ph += fmt.Sprintf("$%d", i)
-			clearArgs = append(clearArgs, v)
-			i++
-		}
-		q := fmt.Sprintf(`UPDATE er_alert_monitor SET status='F', pdx_detected_at=NOW() WHERE vn IN (%s)`, ph)
-		if _, err := db.Exec(q, clearArgs...); err != nil {
-			return cleared, err
-		}
-	}
-	return cleared, nil
-}
-
-// UpdateLastAlertAt บันทึกเวลาที่ส่ง alert ล่าสุด
-func UpdateLastAlertAt(vn string) {
-	db := conn.Db
-	if _, err := db.Exec(`UPDATE er_alert_monitor SET last_alert_at=NOW() WHERE vn=$1`, vn); err != nil {
-		log.Printf("[ALERT] UpdateLastAlertAt vn=%s error: %v", vn, err)
-	}
-}
-
-// GetNullTypePatients ดึงผู้ป่วยที่เข้า ER แล้วแต่ยังไม่ระบุ emergency type
-// ไม่สน doctor_tx_time
 func GetNullTypePatients() ([]utils.NullTypeAlert, error) {
 	db := conn.Db
 	query := `
@@ -229,7 +138,7 @@ func GetNullTypePatients() ([]utils.NullTypeAlert, error) {
 		}
 		a.EnterERDate = enterTime.Format("2006-01-02")
 		a.EnterERTime = enterTime.Format("15:04:05")
-		a.Message = "[ยังไม่ระบุ Type] " + a.FullName + " รอ " + fmt.Sprintf("%d", a.ElapsedMin) + " นาที"
+		a.Message = fmt.Sprintf("[ยังไม่ระบุ Type] %s รอ %d นาที", a.FullName, a.ElapsedMin)
 		list = append(list, a)
 	}
 	return list, rows.Err()
