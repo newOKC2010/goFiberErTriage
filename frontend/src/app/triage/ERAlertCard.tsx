@@ -17,14 +17,14 @@ export default function ERAlertCard({ alert, onClear }: { alert: ERAlert; onClea
           <p className="text-sm text-gray-500">HN: {alert.hn} &nbsp;|&nbsp; เข้า ER: {alert.enter_er_date} {alert.enter_er_time}</p>
         </div>
 
-        {/* ขวา: เวลารอ + ปุ่มเคลียร์ */}
+        {/* ขวา: เวลารอ */}
         <div className="flex flex-col items-center gap-1.5 shrink-0">
           <span className="text-4xl font-black text-red-600 leading-none">{alert.elapsed_min}</span>
           <span className="text-sm text-gray-500">นาที</span>
           <span className="text-xs text-gray-400">แจ้งทุก {alert.threshold_min} นาที</span>
           <button
             onClick={() => onClear(alert.vn)}
-            className="cursor-pointer rounded-lg bg-red-500 px-4 py-1.5 text-sm font-bold text-white shadow-md transition-all hover:bg-red-600 hover:shadow-lg active:scale-95"
+            className="hidden cursor-pointer rounded-lg bg-red-500 px-4 py-1.5 text-sm font-bold text-white shadow-md transition-all hover:bg-red-600 hover:shadow-lg active:scale-95"
           >
             เคลียร์
           </button>
