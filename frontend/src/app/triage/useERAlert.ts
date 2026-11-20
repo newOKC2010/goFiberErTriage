@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { API_ENDPOINTS } from '@/global/globalApi'
-import { ERAlert } from './TYPE'
+import { ERAlert, ERAlertCardData } from './TYPE'
 import { getAudioCtx, playERBeep } from './audio'
 
-type ERAlertLocal = ERAlert & { expiresAt: number }
+// alertUntil = เวลาที่หยุดกระพริบ + เสียง (0 = card ค้างนิ่ง)
+type ERAlertLocal = ERAlert & { alertUntil: number }
 
 function parseDurationMs(s?: string): number {
   if (!s) return 60_000
@@ -12,10 +13,10 @@ function parseDurationMs(s?: string): number {
   if (isNaN(n)) return 60_000
   return s.endsWith('s') ? n * 1_000 : n * 60_000
 }
-const CARD_TTL_MS = parseDurationMs(process.env.NEXT_PUBLIC_TIME_CARD)
+const ALERT_MS = parseDurationMs(process.env.NEXT_PUBLIC_TIME_CARD)
 
 export function useERAlert() {
-  const [alerts, setAlerts] = useState<ERAlert[]>([])
+  const [alerts, setAlerts] = useState<ERAlertCardData[]>([])
   const [connected, setConnected] = useState(false)
   const [soundOn, setSoundOn] = useState(false)
 
@@ -26,40 +27,36 @@ export function useERAlert() {
   const destroyed = useRef(false)
   const soundOnRef = useRef(false)
 
+  // sync localAlerts → alerts state + เสียงดังเฉพาะตอนมี card กระพริบ
+  function sync() {
+    const now = Date.now()
+    const list = Array.from(localAlerts.current.values(), ({ alertUntil, ...a }) => ({
+      ...a,
+      blinking: alertUntil > now,
+    }))
+    setAlerts(list)
+
+    const shouldBeep = soundOnRef.current && list.some((a) => a.blinking)
+    if (shouldBeep && !beepRef.current) {
+      playERBeep()
+      beepRef.current = setInterval(playERBeep, 3000)
+    } else if (!shouldBeep && beepRef.current) {
+      clearInterval(beepRef.current)
+      beepRef.current = null
+    }
+  }
+
   function toggleSound() {
     const ctx = getAudioCtx()
     if (ctx.state === 'suspended') ctx.resume()
-    const next = !soundOnRef.current
-    soundOnRef.current = next
-    setSoundOn(next)
-    if (next && localAlerts.current.size > 0) {
-      playERBeep()
-      beepRef.current = setInterval(playERBeep, 3000)
-    } else {
-      if (beepRef.current) clearInterval(beepRef.current)
-      beepRef.current = null
-    }
+    soundOnRef.current = !soundOnRef.current
+    setSoundOn(soundOnRef.current)
+    sync()
   }
 
   // ลบ alert ออกจาก local ทันที (เรียกจากปุ่ม clear)
   function clearAlert(vn: string) {
-    if (localAlerts.current.delete(vn)) {
-      sync(localAlerts.current)
-    }
-  }
-
-  // sync localAlerts → alerts state + จัดการ beep interval
-  function sync(map: Map<string, ERAlertLocal>) {
-    const list = Array.from(map.values())
-    setAlerts(list)
-    if (!soundOnRef.current) return
-    if (list.length > 0 && !beepRef.current) {
-      playERBeep()
-      beepRef.current = setInterval(playERBeep, 3000)
-    } else if (list.length === 0 && beepRef.current) {
-      clearInterval(beepRef.current)
-      beepRef.current = null
-    }
+    if (localAlerts.current.delete(vn)) sync()
   }
 
   // SSE connection
@@ -78,15 +75,19 @@ export function useERAlert() {
       es.onmessage = (e) => {
         if (!e.data || e.data.trim() === '') return
         try {
-          const newAlerts: ERAlert[] | null = JSON.parse(e.data)
-          if (!newAlerts) return
-
-          // แสดง card ตาม NEXT_PUBLIC_TIME_CARD แล้วหายไปเอง
-          const expiresAt = Date.now() + CARD_TTL_MS
-          newAlerts.forEach((a) => {
-            localAlerts.current.set(a.vn, { ...a, expiresAt })
+          // backend ส่ง card ที่ active ทั้งหมด — vn ที่ไม่อยู่ในรายการ = ลบ card
+          const list: ERAlert[] = JSON.parse(e.data) ?? []
+          const now = Date.now()
+          const next = new Map<string, ERAlertLocal>()
+          list.forEach((a) => {
+            const prev = localAlerts.current.get(a.vn)
+            next.set(a.vn, {
+              ...a,
+              alertUntil: a.alert ? now + ALERT_MS : (prev?.alertUntil ?? 0),
+            })
           })
-          sync(localAlerts.current)
+          localAlerts.current = next
+          sync()
         } catch {}
       }
 
@@ -104,23 +105,24 @@ export function useERAlert() {
       destroyed.current = true
       if (retryRef.current) clearTimeout(retryRef.current)
       if (beepRef.current) clearInterval(beepRef.current)
+      beepRef.current = null
       esRef.current?.close()
     }
   }, [])
 
-  // ลบ card ที่หมดเวลา (CARD_TTL) — จะกลับมาใหม่เมื่อ backend ส่งรอบถัดไป
+  // ครบเวลา NEXT_PUBLIC_TIME_CARD → หยุดกระพริบ + เสียง แต่ card ยังแสดงค้างไว้
   useEffect(() => {
     const timer = setInterval(() => {
       const now = Date.now()
       let changed = false
-      localAlerts.current.forEach((a, key) => {
-        if (a.expiresAt <= now) {
-          localAlerts.current.delete(key)
+      localAlerts.current.forEach((a) => {
+        if (a.alertUntil && a.alertUntil <= now) {
+          a.alertUntil = 0
           changed = true
         }
       })
-      if (changed) sync(localAlerts.current)
-    }, 5000)
+      if (changed) sync()
+    }, 1000)
     return () => clearInterval(timer)
   }, [])
 

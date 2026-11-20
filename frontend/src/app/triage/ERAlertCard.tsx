@@ -1,12 +1,12 @@
-import { ERAlert, EMERGENCY_COLOR } from './TYPE'
+import { ERAlertCardData, EMERGENCY_COLOR } from './TYPE'
 
-export default function ERAlertCard({ alert, onClear }: { alert: ERAlert; onClear: (vn: string) => void }) {
+export default function ERAlertCard({ alert, onClear }: { alert: ERAlertCardData; onClear: (vn: string) => void }) {
   const color = EMERGENCY_COLOR[alert.emergency_type] ?? {
     bg: 'bg-gray-50', border: 'border-gray-400', badge: 'bg-gray-400',
   }
 
   return (
-    <div className={`rounded-xl border-l-4 px-4 py-3 shadow-md ${color.bg} ${color.border}`}>
+    <div className={`rounded-xl border-l-4 px-4 py-3 shadow-md ${color.bg} ${color.border} ${alert.blinking ? 'er-blink ring-4 ring-red-500' : ''}`}>
       <div className="flex items-center justify-between gap-3">
         {/* ซ้าย: ชื่อ + HN + type */}
         <div className="flex flex-col gap-0.5">

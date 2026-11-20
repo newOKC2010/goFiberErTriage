@@ -123,7 +123,7 @@ export default function TriagePage() {
             </div>
           ) : (
             visibleAlerts.map((a) => (
-              <ERAlertCard key={`${a.vn}-${a.elapsed_min}`} alert={a} onClear={handleClear} />
+              <ERAlertCard key={a.vn} alert={a} onClear={handleClear} />
             ))
           )}
         </div>

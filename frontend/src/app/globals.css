@@ -58,3 +58,7 @@ body {
 .dot-pulse {
   animation: pulse-dot 1.4s ease-in-out infinite;
 }
+
+.er-blink {
+  animation: pulse-dot 0.8s ease-in-out infinite;
+}

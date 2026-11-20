@@ -9,7 +9,11 @@ export interface ERAlert {
   elapsed_min: number
   threshold_min: number
   message: string
+  alert: boolean // true = ถึงรอบแจ้งเตือน
 }
+
+// card ที่แสดงบนจอ: blinking = กำลังกระพริบ + เสียง
+export type ERAlertCardData = ERAlert & { blinking: boolean }
 
 export interface NullTypeAlert {
   hn: string
