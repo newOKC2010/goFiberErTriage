@@ -57,7 +57,11 @@ func CreateERNotifyTrigger() {
 					ON CONFLICT (vn) DO UPDATE SET
 						emergency_type_id = EXCLUDED.emergency_type_id,
 						enter_er_time     = EXCLUDED.enter_er_time,
-						status            = 'T';
+						status            = 'T',
+						last_alert_at     = NULL,
+						first_alert_at    = NULL,
+						alert_count       = 0,
+						pdx_detected_at   = NULL;
 					PERFORM pg_notify('er_alert_update', NEW.vn::text);
 				END IF;
 			ELSE  -- UPDATE
@@ -67,7 +71,11 @@ func CreateERNotifyTrigger() {
 					ON CONFLICT (vn) DO UPDATE SET
 						emergency_type_id = EXCLUDED.emergency_type_id,
 						enter_er_time     = EXCLUDED.enter_er_time,
-						status            = 'T';
+						status            = 'T',
+						last_alert_at     = NULL,
+						first_alert_at    = NULL,
+						alert_count       = 0,
+						pdx_detected_at   = NULL;
 					PERFORM pg_notify('er_alert_update', NEW.vn::text);
 				ELSIF OLD.er_emergency_type IS NOT NULL AND NEW.er_emergency_type IS NOT NULL
 					  AND OLD.er_emergency_type <> NEW.er_emergency_type THEN

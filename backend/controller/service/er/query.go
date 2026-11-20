@@ -62,7 +62,9 @@ func GetPendingERAlerts() ([]utils.ERAlert, error) {
 			m.emergency_type_id,
 			COALESCE(et.name, '') AS emergency_name,
 			m.enter_er_time,
-			FLOOR(EXTRACT(EPOCH FROM (NOW() - m.enter_er_time)) / 60)::INT AS elapsed_min
+			FLOOR(EXTRACT(EPOCH FROM (NOW() - m.enter_er_time)) / 60)::INT AS elapsed_min,
+			COALESCE(FLOOR(EXTRACT(EPOCH FROM (m.last_alert_at - m.enter_er_time)) / 60)::INT, 0) AS last_alert_min,
+			(m.last_alert_at IS NOT NULL) AS alerted
 		FROM
 			er_alert_monitor m
 			JOIN er_regist er ON er.vn = m.vn
@@ -89,6 +91,7 @@ func GetPendingERAlerts() ([]utils.ERAlert, error) {
 			&a.HN, &a.VN, &a.FullName,
 			&emergencyType, &a.EmergencyName,
 			&enterTime, &elapsedMin,
+			&a.LastAlertMin, &a.Alerted,
 		); err != nil {
 			return nil, err
 		}

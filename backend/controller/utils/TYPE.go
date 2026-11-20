@@ -30,6 +30,9 @@ type ERAlert struct {
 	ElapsedMin    int    `json:"elapsed_min"`
 	ThresholdMin  int    `json:"threshold_min"`
 	Message       string `json:"message"`
+	Alert         bool   `json:"alert"` // true = ถึงรอบแจ้งเตือน (กระพริบ + เสียง)
+	Alerted       bool   `json:"-"`     // เคยแจ้งเตือนแล้ว
+	LastAlertMin  int    `json:"-"`     // นาทีที่รอ ณ ตอนแจ้งล่าสุด
 }
 
 // NullTypeAlert ผู้ป่วยที่เข้า ER แต่ยังไม่ระบุ emergency type

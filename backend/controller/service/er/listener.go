@@ -46,24 +46,29 @@ func checkAndBroadcast() {
 		log.Printf("[ALERT] auto-clear (discharged) vn=%s", vn)
 	}
 
-	var alerts []utils.ERAlert
+	// ส่ง card ที่ยัง active ทั้งหมดทุกรอบ (vn ที่ไม่อยู่ในรายการ = frontend ลบ card)
+	alerts := []utils.ERAlert{}
 	for _, a := range list {
 		if discharged[a.VN] {
 			continue
 		}
 		threshold, ok := utils.AlertThresholds[a.EmergencyType]
-		if !ok {
+		if !ok || threshold <= 0 {
 			continue
 		}
 		elapsed := a.ElapsedMin
-		if elapsed >= threshold && elapsed%threshold == 0 {
-			a.ThresholdMin = threshold
-			alerts = append(alerts, a)
+		a.ThresholdMin = threshold
+		// ถึงรอบใหม่เมื่อรอบปัจจุบันมากกว่ารอบที่แจ้งล่าสุด (ไม่ข้ามรอบ ไม่แจ้งซ้ำ)
+		a.Alert = elapsed >= threshold && elapsed/threshold > a.LastAlertMin/threshold
+		if a.Alert {
 			log.Printf("[ALERT] HN:%-8s  รอ %3d/%d นาที  [%s]  %s",
 				a.HN, elapsed, threshold, a.EmergencyName, a.FullName)
-			go UpdateLastAlertAt(a.VN)
+			UpdateLastAlertAt(a.VN)
 			go mophAlert.SendERAlert(a.HN, a.FullName, a.EmergencyName,
 				a.EnterERDate, a.EnterERTime, elapsed, threshold)
+		}
+		if a.Alert || a.Alerted {
+			alerts = append(alerts, a)
 		}
 	}
 	Hub.broadcast(alerts)
