@@ -1,8 +1,8 @@
 'use client'
 import { useERAlert } from './useERAlert'
-import { useNullTypeAlert } from './useNullTypeAlert'
+// import { useNullTypeAlert } from './useNullTypeAlert' // ปิดไว้ชั่วคราว
 import ERAlertCard from './ERAlertCard'
-import NullTypeCard from './NullTypeCard'
+// import NullTypeCard from './NullTypeCard' // ปิดไว้ชั่วคราว
 import { API_ENDPOINTS } from '@/global/globalApi'
 
 function SpeakerOnIcon() {
@@ -44,10 +44,10 @@ function WarnIcon() {
 
 export default function TriagePage() {
   const { alerts, connected, soundOn, toggleSound, clearAlert } = useERAlert()
-  const { alerts: nullAlerts, soundOn: nullSoundOn, toggleSound: toggleNullSound } = useNullTypeAlert()
+  // const { alerts: nullAlerts, soundOn: nullSoundOn, toggleSound: toggleNullSound } = useNullTypeAlert() // ปิดไว้ชั่วคราว
 
   const visibleAlerts = alerts.slice(0, 10)
-  const visibleNull = nullAlerts.slice(0, 10)
+  // const visibleNull = nullAlerts.slice(0, 10) // ปิดไว้ชั่วคราว
 
   async function handleClear(vn: string) {
     clearAlert(vn) // ลบจาก frontend ทันที
@@ -78,8 +78,8 @@ export default function TriagePage() {
             <span className="text-xs">{soundOn ? '● เปิดอยู่' : '○ ปิดอยู่'}</span>
           </button>
 
-          {/* ปุ่มเสียง Null */}
-          <button
+          {/* ปุ่มเสียง Null (ปิดไว้ชั่วคราว) */}
+          {/* <button
             onClick={toggleNullSound}
             className={`flex flex-col items-center rounded-xl px-4 py-1.5 text-white transition-colors ${nullSoundOn ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 hover:bg-gray-500'}`}
           >
@@ -91,7 +91,7 @@ export default function TriagePage() {
             </svg>
             <span className="text-xs font-bold">เสียง ไม่ระบุ Type</span>
             <span className="text-xs">{nullSoundOn ? '● เปิดอยู่' : '○ ปิดอยู่'}</span>
-          </button>
+          </button> */}
 
           {/* สถานะการเชื่อมต่อ */}
           <div className={`flex flex-col items-center rounded-xl px-4 py-1.5 text-white ${connected ? 'bg-blue-500' : 'bg-red-400'}`}>
@@ -106,48 +106,44 @@ export default function TriagePage() {
         </div>
       </div>
 
-      {/* แบ่ง 2 คอลัมน์ */}
-      <div className="grid grid-cols-2 gap-4 h-[calc(100vh-100px)]">
-
-        {/* ซ้าย: ผู้ป่วยที่มี type */}
-        <div className="flex flex-col gap-2 overflow-y-auto">
-          <div className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2">
-            <h2 className="text-base font-bold text-white">🚨 ER Alert</h2>
-            <span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-bold text-red-600">
-              {alerts.length} ราย
-            </span>
-          </div>
-          {visibleAlerts.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center rounded-2xl bg-white shadow-sm">
-              <p className="text-xl text-gray-400">ไม่มีผู้ป่วยรอแพทย์เกินกำหนด</p>
-            </div>
-          ) : (
-            visibleAlerts.map((a) => (
-              <ERAlertCard key={a.vn} alert={a} onClear={handleClear} />
-            ))
-          )}
+      {/* ER Alert (full width) */}
+      <div className="flex flex-col gap-2 h-[calc(100vh-100px)] overflow-y-auto">
+        <div className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2">
+          <h2 className="text-base font-bold text-white">🚨 ER Alert</h2>
+          <span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-bold text-red-600">
+            {alerts.length} ราย
+          </span>
         </div>
-
-        {/* ขวา: ผู้ป่วยที่ยังไม่ระบุ type */}
-        <div className="flex flex-col gap-2 overflow-y-auto">
-          <div className="flex items-center gap-2 rounded-xl bg-orange-400 px-4 py-2">
-            <h2 className="text-base font-bold text-white">⚠️ ยังไม่ระบุ Type ER</h2>
-            <span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-bold text-orange-600">
-              {nullAlerts.length} ราย
-            </span>
+        {visibleAlerts.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center rounded-2xl bg-white shadow-sm">
+            <p className="text-xl text-gray-400">ไม่มีผู้ป่วยรอแพทย์เกินกำหนด</p>
           </div>
-          {visibleNull.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center rounded-2xl bg-white shadow-sm">
-              <p className="text-xl text-gray-400">ไม่มีผู้ป่วยที่ยังไม่ระบุ Type</p>
-            </div>
-          ) : (
-            visibleNull.map((a) => (
-              <NullTypeCard key={`${a.vn}-${a.elapsed_min}`} alert={a} />
-            ))
-          )}
-        </div>
-
+        ) : (
+          visibleAlerts.map((a) => (
+            <ERAlertCard key={a.vn} alert={a} onClear={handleClear} />
+          ))
+        )}
       </div>
+
+      {/* ── ยังไม่ระบุ Type (ปิดไว้ชั่วคราว) ───────────────────────────────────
+      <div className="flex flex-col gap-2 overflow-y-auto">
+        <div className="flex items-center gap-2 rounded-xl bg-orange-400 px-4 py-2">
+          <h2 className="text-base font-bold text-white">⚠️ ยังไม่ระบุ Type ER</h2>
+          <span className="rounded-full bg-white px-2.5 py-0.5 text-sm font-bold text-orange-600">
+            {nullAlerts.length} ราย
+          </span>
+        </div>
+        {visibleNull.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center rounded-2xl bg-white shadow-sm">
+            <p className="text-xl text-gray-400">ไม่มีผู้ป่วยที่ยังไม่ระบุ Type</p>
+          </div>
+        ) : (
+          visibleNull.map((a) => (
+            <NullTypeCard key={`${a.vn}-${a.elapsed_min}`} alert={a} />
+          ))
+        )}
+      </div>
+      ─────────────────────────────────────────────────────────────────────── */}
     </div>
   )
 }
