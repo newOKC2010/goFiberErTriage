@@ -9,7 +9,7 @@ import (
 func SetupRoutes(app *fiber.App) {
 	er := app.Group("/api/er")
 	er.Get("/alerts", handler.ERAlertSSE)
-	er.Get("/null-type", handler.NullTypeSSE)
+	// er.Get("/null-type", handler.NullTypeSSE) // ปิดไว้ชั่วคราว
 	er.Post("/alerts/:vn/clear", handler.ClearERAlert)
 
 	ipd := app.Group("/api/ipd")

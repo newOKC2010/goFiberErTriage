@@ -29,7 +29,8 @@ func ClearERAlert(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"ok": true, "vn": vn})
 }
 
-// NullTypeSSE ส่งผู้ป่วยที่ยังไม่ระบุ emergency type
+// ── NullTypeSSE (ปิดไว้ชั่วคราว) ─────────────────────────────────────────────
+/*
 func NullTypeSSE(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
@@ -66,6 +67,7 @@ func NullTypeSSE(c *fiber.Ctx) error {
 	}))
 	return nil
 }
+*/
 
 // ERAlertSSE ส่ง alert แบบ real-time ผ่าน SSE
 // รับ []ERAlert สำเร็จรูปจาก service goroutine กลาง

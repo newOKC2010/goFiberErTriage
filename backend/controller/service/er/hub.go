@@ -44,6 +44,8 @@ func (h *notifyHub) broadcast(alerts []utils.ERAlert) {
 	}
 }
 
+// ── NULL TYPE hub (ปิดไว้ชั่วคราว) ──────────────────────────────────────────
+/*
 type nullTypeHub struct {
 	mu      sync.Mutex
 	clients map[chan []utils.NullTypeAlert]struct{}
@@ -67,3 +69,4 @@ func (h *nullTypeHub) broadcast(alerts []utils.NullTypeAlert) {
 		}
 	}
 }
+*/

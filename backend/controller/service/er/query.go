@@ -106,6 +106,8 @@ func GetPendingERAlerts() ([]utils.ERAlert, error) {
 	return alerts, rows.Err()
 }
 
+// ── NULL TYPE query (ปิดไว้ชั่วคราว) ─────────────────────────────────────────
+/*
 func GetNullTypePatients() ([]utils.NullTypeAlert, error) {
 	db := conn.Db
 	query := `
@@ -146,3 +148,4 @@ func GetNullTypePatients() ([]utils.NullTypeAlert, error) {
 	}
 	return list, rows.Err()
 }
+*/

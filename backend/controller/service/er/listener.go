@@ -11,6 +11,8 @@ import (
 	"tiage/controller/utils"
 )
 
+// ── NULL TYPE (ปิดไว้ชั่วคราว) ──────────────────────────────────────────────
+/*
 func checkNullAndBroadcast() {
 	list, err := GetNullTypePatients()
 	if err != nil {
@@ -26,6 +28,7 @@ func checkNullAndBroadcast() {
 	}
 	NullHub.broadcast(list)
 }
+*/
 
 func checkAndBroadcast() {
 	list, err := GetPendingERAlerts()
@@ -106,7 +109,7 @@ func InitERListener() {
 
 		log.Println("[ALERT] ตรวจสอบผู้ป่วยค้างจากก่อน restart...")
 		checkAndBroadcast()
-		checkNullAndBroadcast()
+		// checkNullAndBroadcast() // ปิดไว้ชั่วคราว
 
 		for {
 			select {
@@ -117,7 +120,7 @@ func InitERListener() {
 				}
 				log.Printf("[LISTEN] รับ notify: vn=%s", n.Extra)
 				checkAndBroadcast()
-				checkNullAndBroadcast()
+				// checkNullAndBroadcast() // ปิดไว้ชั่วคราว
 
 			case <-ticker.C:
 				Hub.mu.Lock()
@@ -129,7 +132,7 @@ func InitERListener() {
 					log.Printf("[LISTEN] alive ✓ | clients: %d", clientCount)
 				}
 				checkAndBroadcast()
-				checkNullAndBroadcast()
+				// checkNullAndBroadcast() // ปิดไว้ชั่วคราว
 			}
 		}
 	}()
